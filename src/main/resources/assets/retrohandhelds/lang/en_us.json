@@ -19,5 +19,11 @@
   "message.retrohandhelds.no_cartridge": "Insert a cartridge first",
   "message.retrohandhelds.rom_missing": "You don't have %s in your ROM folder",
   "message.retrohandhelds.core_missing": "The emulator core could not be loaded. See the game log.",
-  "message.retrohandhelds.busy": "Another emulator session is already running"
+  "message.retrohandhelds.busy": "Another emulator session is already running",
+  "key.retrohandhelds.save_state": "Save State",
+  "key.retrohandhelds.load_state": "Load State",
+  "message.retrohandhelds.state_saved": "State saved",
+  "message.retrohandhelds.state_loaded": "State loaded",
+  "message.retrohandhelds.state_missing": "No saved state yet",
+  "message.retrohandhelds.state_failed": "Save state failed (see log)"
 }

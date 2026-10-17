@@ -13,6 +13,8 @@ public final class LibretroConstants {
     public static final int PIXEL_FORMAT_XRGB8888 = 1;
     public static final int PIXEL_FORMAT_RGB565 = 2;
 
+    public static final int MEMORY_SAVE_RAM = 0;
+
     public static final int DEVICE_JOYPAD = 1;
     public static final int DEVICE_ID_JOYPAD_B = 0;
     public static final int DEVICE_ID_JOYPAD_SELECT = 2;

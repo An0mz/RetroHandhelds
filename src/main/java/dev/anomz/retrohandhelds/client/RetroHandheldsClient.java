@@ -5,6 +5,7 @@ import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
+import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
@@ -35,6 +36,7 @@ public final class RetroHandheldsClient {
     public RetroHandheldsClient(IEventBus modEventBus) {
         modEventBus.addListener(RetroHandheldsClient::onClientSetup);
         modEventBus.addListener(JoypadButton::registerAll);
+        modEventBus.addListener(EmulatorKeys::registerAll);
         modEventBus.addListener(RetroHandheldsClient::onRegisterRenderers);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRegisterClientCommands);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onClientTick);

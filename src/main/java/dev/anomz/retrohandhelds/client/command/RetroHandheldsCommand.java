@@ -67,7 +67,7 @@ public final class RetroHandheldsCommand {
         }
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), false);
+            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false);
         } catch (IllegalStateException e) {
             source.sendFailure(Component.translatable("message.retrohandhelds.busy"));
             return 0;

@@ -2,15 +2,18 @@ package dev.anomz.retrohandhelds.client.emu;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.sun.jna.Memory;
 
-import dev.anomz.retrohandhelds.client.audio.AudioOutput;
-
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.client.audio.AudioOutput;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.RetroGameInfo;
 import dev.anomz.retrohandhelds.client.libretro.RetroSystemAvInfo;
@@ -29,6 +32,11 @@ public final class EmulatorSession {
     private static final long JOIN_TIMEOUT_MS = 2000;
     /** Half a second of stereo audio at mGBA's 65536 Hz output rate. */
     private static final int AUDIO_RING_SAMPLES = 1 << 16;
+    /** How often save RAM is compared with the file; also written when the session stops. */
+    private static final long SAVE_RAM_CHECK_NANOS = TimeUnit.SECONDS.toNanos(5);
+
+    private record StateRequest(boolean save, CompletableFuture<StateResult> result) {
+    }
 
     private final MgbaCore core;
     private final Path rom;
@@ -36,29 +44,41 @@ public final class EmulatorSession {
     private final JoypadState joypad = new JoypadState();
     private final AudioRingBuffer audio = new AudioRingBuffer(AUDIO_RING_SAMPLES);
     private final boolean withSound;
+    @Nullable
+    private final SaveFiles saves;
+    private final ConcurrentLinkedQueue<StateRequest> stateRequests = new ConcurrentLinkedQueue<>();
     private final CoreCallbacks callbacks;
     private final Thread thread;
     private volatile boolean running = true;
     private volatile State state = State.STARTING;
     private volatile String failure;
     private volatile float volume = 1f;
+    /** Set once the emulator thread can no longer answer state requests. */
+    private volatile boolean finished;
     // Kept as fields so the ROM memory stays reachable while the core may still read it.
     private Memory romData;
     private RetroGameInfo gameInfo;
     private AudioOutput audioOutput;
+    private SaveRam saveRam;
+    private SaveStates saveStates;
 
-    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, boolean withSound) {
+    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves, boolean withSound) {
         this.core = core;
         this.rom = rom;
+        this.saves = saves;
         this.withSound = withSound;
         this.callbacks = new CoreCallbacks(frames, joypad, audio, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
     }
 
-    /** @throws IllegalStateException if another session is still active */
-    public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir, boolean withSound) {
-        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, withSound);
+    /**
+     * @param saves where save RAM and the save state live; null runs without touching any saves
+     * @throws IllegalStateException if another session is still active
+     */
+    public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir,
+            @Nullable SaveFiles saves, boolean withSound) {
+        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound);
         if (!ACTIVE.compareAndSet(null, session)) {
             throw new IllegalStateException("An emulator session is already running");
         }
@@ -99,6 +119,29 @@ public final class EmulatorSession {
         this.volume = volume;
     }
 
+    /** Saves a state between frames. Completes on the emulator thread. */
+    public CompletableFuture<StateResult> saveState() {
+        return requestState(true);
+    }
+
+    /** Loads the saved state between frames. Completes on the emulator thread. */
+    public CompletableFuture<StateResult> loadState() {
+        return requestState(false);
+    }
+
+    private CompletableFuture<StateResult> requestState(boolean save) {
+        if (saves == null || !running || finished) {
+            return CompletableFuture.completedFuture(StateResult.FAILED);
+        }
+        CompletableFuture<StateResult> result = new CompletableFuture<>();
+        stateRequests.add(new StateRequest(save, result));
+        // The thread may have finished between the check and the add; nobody else would answer then.
+        if (finished) {
+            failPendingRequests();
+        }
+        return result;
+    }
+
     public JoypadState joypad() {
         return joypad;
     }
@@ -137,6 +180,11 @@ public final class EmulatorSession {
                 return;
             }
             loaded = true;
+            if (saves != null) {
+                saveRam = new SaveRam(core, saves.saveRam());
+                saveRam.load();
+                saveStates = new SaveStates(core, saves.state());
+            }
 
             RetroSystemAvInfo av = new RetroSystemAvInfo();
             core.retro_get_system_av_info(av);
@@ -156,6 +204,11 @@ public final class EmulatorSession {
             if (audioOutput != null) {
                 audioOutput.close();
             }
+            if (saveRam != null) {
+                saveRam.flushIfChanged();
+            }
+            finished = true;
+            failPendingRequests();
             shutdownCore(initialized, loaded);
             if (state != State.FAILED) {
                 state = State.STOPPED;
@@ -166,10 +219,16 @@ public final class EmulatorSession {
 
     private void loop(long periodNanos) {
         long next = System.nanoTime();
+        long nextSaveRamCheck = next + SAVE_RAM_CHECK_NANOS;
         while (running) {
             core.retro_run();
             if (audioOutput != null) {
                 audioOutput.pump(volume);
+            }
+            handleStateRequests();
+            if (saveRam != null && System.nanoTime() >= nextSaveRamCheck) {
+                saveRam.flushIfChanged();
+                nextSaveRamCheck = System.nanoTime() + SAVE_RAM_CHECK_NANOS;
             }
             next += periodNanos;
             long wait = next - System.nanoTime();
@@ -179,6 +238,20 @@ public final class EmulatorSession {
                 // Too far behind (debugger, suspended machine): resync instead of fast-forwarding.
                 next = System.nanoTime();
             }
+        }
+    }
+
+    private void handleStateRequests() {
+        for (StateRequest request; (request = stateRequests.poll()) != null; ) {
+            StateResult result = saveStates == null ? StateResult.FAILED
+                    : request.save() ? saveStates.save() : saveStates.load();
+            request.result().complete(result);
+        }
+    }
+
+    private void failPendingRequests() {
+        for (StateRequest request; (request = stateRequests.poll()) != null; ) {
+            request.result().complete(StateResult.FAILED);
         }
     }
 

@@ -7,10 +7,12 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
+import dev.anomz.retrohandhelds.client.emu.SaveFiles;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
@@ -73,10 +75,16 @@ public final class ConsoleSessions {
             onError.accept(Component.translatable("message.retrohandhelds.core_missing"));
             return Optional.empty();
         }
+        // A cartridge saves under its own ID; the play command saves per ROM file.
+        String saveId = cartridge != null ? cartridge.saveId() : SaveFiles.idFromName("standalone_", romFile);
+        SaveFiles saves = SaveFiles.forId(RetroPaths.saves(), saveId).orElse(null);
+        if (saves == null) {
+            RetroHandhelds.LOGGER.warn("Retro Handhelds: invalid save ID {}, playing without saves", saveId);
+        }
         stop();
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), true);
+            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true);
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();

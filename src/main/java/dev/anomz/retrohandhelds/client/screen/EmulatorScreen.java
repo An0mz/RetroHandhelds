@@ -7,10 +7,13 @@ import org.lwjgl.glfw.GLFW;
 import dev.anomz.retrohandhelds.RomNames;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
+import dev.anomz.retrohandhelds.client.emu.StateResult;
+import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -23,12 +26,15 @@ public final class EmulatorScreen extends Screen {
     private static final int H = FrameBuffer.HEIGHT;
     private static final long HINT_VISIBLE_MS = 5000;
     private static final long HINT_FADE_MS = 1000;
+    private static final long STATUS_VISIBLE_MS = 2000;
 
     private final ConsoleSessions.Active active;
     private final EmulatorSession session;
     private final boolean stopOnClose;
     private final long openedAtMs = Util.getMillis();
     private List<Component> hintLines = List.of();
+    private Component status;
+    private long statusAtMs;
 
     public EmulatorScreen(ConsoleSessions.Active active, boolean stopOnClose) {
         super(Component.literal(RomNames.displayName(active.romFile())));
@@ -43,7 +49,10 @@ public final class EmulatorScreen extends Screen {
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
                 hint(JoypadButton.A, JoypadButton.B, JoypadButton.L, JoypadButton.R),
-                hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"));
+                hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
+                Component.empty()
+                        .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
+                        .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()));
     }
 
     private static Component hint(JoypadButton... buttons) {
@@ -75,6 +84,9 @@ public final class EmulatorScreen extends Screen {
         graphics.blit(active.display().textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, W, H, W, H);
 
         renderHint(graphics);
+        if (status != null && Util.getMillis() - statusAtMs < STATUS_VISIBLE_MS) {
+            graphics.drawCenteredString(font, status, width / 2, 8, 0xFFFFFFFF);
+        }
 
         String failure = session.failure();
         if (failure != null) {
@@ -103,6 +115,14 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (matches(EmulatorKeys.SAVE_STATE, keyCode, scanCode)) {
+            session.saveState().thenAccept(this::showStateResult);
+            return true;
+        }
+        if (matches(EmulatorKeys.LOAD_STATE, keyCode, scanCode)) {
+            session.loadState().thenAccept(this::showStateResult);
+            return true;
+        }
         if (keyCode != GLFW.GLFW_KEY_ESCAPE && setButtons(keyCode, scanCode, true)) {
             return true;
         }
@@ -122,6 +142,24 @@ public final class EmulatorScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return setMouseButtons(button, false) || super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    private static boolean matches(KeyMapping mapping, int keyCode, int scanCode) {
+        return keyCode != GLFW.GLFW_KEY_ESCAPE && mapping.matches(keyCode, scanCode);
+    }
+
+    /** Called on the emulator thread; hops to the render thread before touching the screen. */
+    private void showStateResult(StateResult result) {
+        String key = switch (result) {
+            case SAVED -> "message.retrohandhelds.state_saved";
+            case LOADED -> "message.retrohandhelds.state_loaded";
+            case NO_STATE -> "message.retrohandhelds.state_missing";
+            case FAILED -> "message.retrohandhelds.state_failed";
+        };
+        minecraft.execute(() -> {
+            status = Component.translatable(key);
+            statusAtMs = Util.getMillis();
+        });
     }
 
     private boolean setButtons(int keyCode, int scanCode, boolean down) {
