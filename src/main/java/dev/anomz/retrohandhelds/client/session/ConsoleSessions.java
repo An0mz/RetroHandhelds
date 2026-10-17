@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
+import dev.anomz.retrohandhelds.block.TvLayout;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
@@ -155,6 +156,14 @@ public final class ConsoleSessions {
         return volumeMessage();
     }
 
+    /** Changes other players' volume by whole steps of 10%; also unmutes. Saved to the client config. */
+    public static Component changeOtherPlayersVolume(int steps) {
+        RetroClientConfig.setOtherPlayersVolume(RetroClientConfig.otherPlayersVolume() + steps);
+        RetroClientConfig.setMuted(false);
+        return Component.translatable("message.retrohandhelds.other_volume",
+                RetroClientConfig.otherPlayersVolume() * 100 / RetroClientConfig.VOLUME_STEPS);
+    }
+
     private static Component volumeMessage() {
         return RetroClientConfig.muted()
                 ? Component.translatable("message.retrohandhelds.muted")
@@ -234,7 +243,9 @@ public final class ConsoleSessions {
                 return;
             }
             if (!(minecraft.screen instanceof EmulatorScreen)) {
-                volume *= (float) Math.clamp(1 - (distance - FULL_VOLUME_RANGE) / (SOUND_RANGE - FULL_VOLUME_RANGE), 0, 1);
+                // Heard from the middle of a TV screen showing the game, if there is one.
+                double heard = Math.sqrt(minecraft.player.distanceToSqr(TvLayout.soundCenter(minecraft.level, pos)));
+                volume *= (float) Math.clamp(1 - (heard - FULL_VOLUME_RANGE) / (SOUND_RANGE - FULL_VOLUME_RANGE), 0, 1);
             }
         }
         float playerVolume = RetroClientConfig.muted() ? 0 : RetroClientConfig.volume() / (float) RetroClientConfig.VOLUME_STEPS;

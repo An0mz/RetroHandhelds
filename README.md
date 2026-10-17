@@ -40,7 +40,7 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 
 ### Retro TV
 
-Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 8x8) and they act as one big screen; one of them has to touch the console.
+Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 8x8) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen.
 
 ROMs never leave your computer: a cartridge only stores the ROM's file name. In multiplayer, each player needs the ROM in their own `roms` folder.
 
@@ -74,7 +74,7 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 | Fast-forward (hold) | Tab | |
 | Full screen / in-world view | V | |
 | Save / load state | F5 / F9 | |
-| Mute, volume down/up | M, -, = (also in the world) | |
+| Mute, volume down/up | M, -, = (also in the world) | When you aren't playing, - and = change other players' volume |
 | Back to Minecraft | Esc | |
 
 The game pauses when Minecraft pauses (singleplayer). On servers and LAN worlds Minecraft keeps running, and so does the game.
@@ -99,7 +99,8 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 | Option | Default | |
 |---|---|---|
 | `volume` | 10 | 0-10, on top of the Jukebox/Note Blocks slider |
-| `muted` | false | |
+| `otherPlayersVolume` | 10 | 0-10, volume of other players' consoles and handhelds |
+| `muted` | false | Also mutes other players' games |
 | `colorCorrection` | false | Colors like a real GBA screen |
 | `lcdGhosting` | false | Frame blending like the original LCD |
 | `inWorldView` | false | Open games in the in-world view |

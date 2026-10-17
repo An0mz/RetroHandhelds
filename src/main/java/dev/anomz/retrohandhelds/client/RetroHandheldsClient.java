@@ -15,6 +15,7 @@ import dev.anomz.retrohandhelds.client.render.HandheldArmPose;
 import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
 import dev.anomz.retrohandhelds.client.render.HeldHandheldLayer;
 import dev.anomz.retrohandhelds.client.render.TvRenderer;
+import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.share.RemoteAudio;
@@ -36,11 +37,13 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
@@ -68,6 +71,7 @@ public final class RetroHandheldsClient {
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickItem);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onShutdown);
         NeoForge.EVENT_BUS.addListener(HandheldInHandRenderer::onRenderHand);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderGuiLayer);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -151,6 +155,14 @@ public final class RetroHandheldsClient {
             } else {
                 ConsoleSessions.powerOnHandheld(cartridge);
             }
+        }
+    }
+
+    /** No crosshair while watching the game in the world: the mouse doesn't aim then. */
+    private static void onRenderGuiLayer(RenderGuiLayerEvent.Pre event) {
+        if (event.getName().equals(VanillaGuiLayers.CROSSHAIR)
+                && Minecraft.getInstance().screen instanceof EmulatorScreen screen && screen.inWorldView()) {
+            event.setCanceled(true);
         }
     }
 

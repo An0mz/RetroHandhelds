@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import dev.anomz.retrohandhelds.block.TvLayout;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.audio.AudioOutput;
 import dev.anomz.retrohandhelds.client.emu.AudioRingBuffer;
@@ -19,8 +20,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Sound other players share, with distance falloff like Minecraft's own sounds: from each console's
- * position, or from the player holding the handheld, following them as they move. Main thread only.
+ * Sound other players share, with distance falloff like Minecraft's own sounds: from each console (or
+ * the middle of the TV screen showing it), or from the player holding the handheld, following them as
+ * they move. Volume is the player's "other players" volume. Main thread only.
  */
 public final class RemoteAudio {
     private static final int MAX_SOURCES = 8;
@@ -52,7 +54,7 @@ public final class RemoteAudio {
             if (CONSOLES.size() + HANDHELDS.size() >= MAX_SOURCES) {
                 return;
             }
-            Vec3 at = player >= 0 ? handheldPosition(player) : Vec3.atCenterOf(pos);
+            Vec3 at = player >= 0 ? handheldPosition(player) : consolePosition(pos);
             if (at == null || (source = Source.open(at)) == null) {
                 return;
             }
@@ -72,9 +74,16 @@ public final class RemoteAudio {
             return;
         }
         float playerVolume = RetroClientConfig.muted() ? 0
-                : RetroClientConfig.volume() / (float) RetroClientConfig.VOLUME_STEPS;
+                : RetroClientConfig.otherPlayersVolume() / (float) RetroClientConfig.VOLUME_STEPS;
         float gain = minecraft.options.getSoundSourceVolume(SoundSource.RECORDS) * playerVolume;
         long now = Util.getMillis();
+        if (minecraft.level != null) {
+            // TVs may be placed or broken while the game plays.
+            for (Map.Entry<BlockPos, Source> entry : CONSOLES.entrySet()) {
+                Vec3 at = TvLayout.soundCenter(minecraft.level, entry.getKey());
+                entry.getValue().output.moveTo(at.x, at.y, at.z);
+            }
+        }
         for (Int2ObjectMap.Entry<Source> entry : HANDHELDS.int2ObjectEntrySet()) {
             Entity player = minecraft.level == null ? null : minecraft.level.getEntity(entry.getIntKey());
             if (player != null) {
@@ -98,11 +107,21 @@ public final class RemoteAudio {
         }
     }
 
+    /** Whether any other player's game can be heard. */
+    public static boolean isPlaying() {
+        return !CONSOLES.isEmpty() || !HANDHELDS.isEmpty();
+    }
+
     public static void clear() {
         CONSOLES.values().forEach(source -> source.output.close());
         CONSOLES.clear();
         HANDHELDS.values().forEach(source -> source.output.close());
         HANDHELDS.clear();
+    }
+
+    private static Vec3 consolePosition(BlockPos pos) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.level == null ? null : TvLayout.soundCenter(minecraft.level, pos);
     }
 
     private static Vec3 handheldPosition(int player) {

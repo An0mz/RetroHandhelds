@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Where one TV sits in its screen: a filled rectangle of TVs facing the same way, seen from the
@@ -13,6 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int col, int row) {
     /** Biggest screen in blocks per side; also bounds the work done per check. */
     public static final int MAX_SIZE = 8;
+    private static final Direction[] DIRECTIONS = Direction.values();
 
     /** The screen {@code pos} belongs to; a single 1x1 screen if its neighbours don't form a filled rectangle. */
     public static TvLayout of(BlockGetter level, BlockPos pos, Direction facing) {
@@ -27,6 +29,31 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
         BlockPos origin = pos.relative(right, -left).below(down);
         TvLayout layout = new TvLayout(origin, right, cols, rows, left, down);
         return layout.isFilled(level, facing) ? layout : new TvLayout(pos, right, 1, 1, 0, 0);
+    }
+
+    /**
+     * Where the sound of the console at {@code console} comes from: the middle of the front of a
+     * TV screen touching it, or the console itself when no TV does.
+     */
+    public static Vec3 soundCenter(BlockGetter level, BlockPos console) {
+        for (Direction direction : DIRECTIONS) {
+            BlockPos pos = console.relative(direction);
+            BlockState state = level.getBlockState(pos);
+            if (state.getBlock() instanceof TvBlock) {
+                Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
+                return of(level, pos, facing).frontCenter(facing);
+            }
+        }
+        return Vec3.atCenterOf(console);
+    }
+
+    /** The middle of this screen's front face. */
+    public Vec3 frontCenter(Direction facing) {
+        double across = (cols - 1) / 2.0;
+        return Vec3.atCenterOf(origin).add(
+                right.getStepX() * across + facing.getStepX() * 0.5,
+                (rows - 1) / 2.0,
+                right.getStepZ() * across + facing.getStepZ() * 0.5);
     }
 
     /** Whether {@code target} touches any TV of this screen (shares a face with it). */

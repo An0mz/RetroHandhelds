@@ -5,14 +5,17 @@ import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import dev.anomz.retrohandhelds.client.share.RemoteAudio;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 
 /**
  * Emulator controls that are not handheld buttons. Save states only apply in the emulator screen;
- * the volume keys also work in the world while a console is running.
+ * the volume keys also work in the world: on this player's game while one runs, otherwise on the
+ * games other players share nearby.
  */
 public final class EmulatorKeys {
     public static final KeyMapping SAVE_STATE = new KeyMapping("key.retrohandhelds.save_state",
@@ -46,24 +49,29 @@ public final class EmulatorKeys {
     /**
      * In-world handling, called every client tick. Minecraft only counts clicks while no screen is
      * open; the emulator screen handles these keys itself. Clicks are always drained, so presses
-     * made while no console runs do nothing, now or later.
+     * made while nothing plays do nothing, now or later.
      */
     public static void handleInWorld(Minecraft minecraft) {
-        boolean running = ConsoleSessions.isRunning() && minecraft.player != null;
+        boolean own = ConsoleSessions.isRunning();
+        boolean active = (own || RemoteAudio.isPlaying()) && minecraft.player != null;
         while (MUTE.consumeClick()) {
-            if (running) {
+            if (active) {
                 minecraft.player.displayClientMessage(ConsoleSessions.toggleMute(), true);
             }
         }
         while (VOLUME_DOWN.consumeClick()) {
-            if (running) {
-                minecraft.player.displayClientMessage(ConsoleSessions.changeVolume(-1), true);
+            if (active) {
+                minecraft.player.displayClientMessage(changeVolume(own, -1), true);
             }
         }
         while (VOLUME_UP.consumeClick()) {
-            if (running) {
-                minecraft.player.displayClientMessage(ConsoleSessions.changeVolume(1), true);
+            if (active) {
+                minecraft.player.displayClientMessage(changeVolume(own, 1), true);
             }
         }
+    }
+
+    private static Component changeVolume(boolean own, int steps) {
+        return own ? ConsoleSessions.changeVolume(steps) : ConsoleSessions.changeOtherPlayersVolume(steps);
     }
 }

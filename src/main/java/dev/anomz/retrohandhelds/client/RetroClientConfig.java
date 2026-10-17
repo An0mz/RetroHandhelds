@@ -11,8 +11,12 @@ public final class RetroClientConfig {
     private static final ModConfigSpec.IntValue VOLUME = BUILDER
             .comment("Emulator volume in steps of 10% (0-10), on top of the Jukebox/Note Blocks slider.")
             .defineInRange("volume", VOLUME_STEPS, 0, VOLUME_STEPS);
+    private static final ModConfigSpec.IntValue OTHER_PLAYERS_VOLUME = BUILDER
+            .comment("Volume of other players' consoles and handhelds in steps of 10% (0-10).",
+                    "The volume keys change it while you aren't playing yourself.")
+            .defineInRange("otherPlayersVolume", VOLUME_STEPS, 0, VOLUME_STEPS);
     private static final ModConfigSpec.BooleanValue MUTED = BUILDER
-            .comment("Mute the emulator.")
+            .comment("Mute the emulator, and other players' games.")
             .define("muted", false);
 
     private static final ModConfigSpec.BooleanValue COLOR_CORRECTION = BUILDER
@@ -56,6 +60,15 @@ public final class RetroClientConfig {
 
     public static int volume() {
         return SPEC.isLoaded() ? VOLUME.get() : VOLUME_STEPS;
+    }
+
+    public static int otherPlayersVolume() {
+        return SPEC.isLoaded() ? OTHER_PLAYERS_VOLUME.get() : VOLUME_STEPS;
+    }
+
+    public static void setOtherPlayersVolume(int volume) {
+        OTHER_PLAYERS_VOLUME.set(Math.clamp(volume, 0, VOLUME_STEPS));
+        OTHER_PLAYERS_VOLUME.save();
     }
 
     public static boolean muted() {

@@ -273,6 +273,11 @@ public final class EmulatorScreen extends Screen {
         return active == session;
     }
 
+    /** Whether the game is watched in the world rather than full screen. */
+    public boolean inWorldView() {
+        return inWorldView;
+    }
+
     @Override
     public boolean isPauseScreen() {
         return false;
