@@ -42,6 +42,9 @@ public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
             return;
         }
         TvLayout layout = tv.layout(tv.getLevel().getGameTime());
+        if (layout.tooBig()) {
+            return;
+        }
         ScreenImage display = source(layout);
         if (display == null) {
             return;

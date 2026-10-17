@@ -4,6 +4,8 @@ import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.RetroServerConfig;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
+import dev.anomz.retrohandhelds.block.TvBlockEntity;
+import dev.anomz.retrohandhelds.block.TvLayout;
 import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
@@ -24,6 +26,7 @@ import dev.anomz.retrohandhelds.client.share.ScreenBroadcaster;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
@@ -118,12 +121,27 @@ public final class RetroHandheldsClient {
         RemoteAudio.clear();
     }
 
-    /** Empty hand on a console powers it on. Inserting and ejecting are handled by the block on the server. */
+    /**
+     * Empty hand on a console, or on a TV screen touching one, powers it on. Inserting and ejecting
+     * are handled by the block on the server.
+     */
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         Player player = event.getEntity();
         if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
-                || !player.getMainHandItem().isEmpty() || player.isShiftKeyDown()
-                || !(event.getLevel().getBlockEntity(event.getPos()) instanceof ConsoleBlockEntity console)) {
+                || !player.getMainHandItem().isEmpty() || player.isShiftKeyDown()) {
+            return;
+        }
+        BlockPos pos = event.getPos();
+        if (event.getLevel().getBlockEntity(pos) instanceof TvBlockEntity tv) {
+            TvLayout layout = tv.layout(event.getLevel().getGameTime());
+            BlockPos found = layout.tooBig() ? null : layout.findConsole(event.getLevel());
+            if (found == null) {
+                player.displayClientMessage(Component.translatable("message.retrohandhelds.no_console"), true);
+                return;
+            }
+            pos = found;
+        }
+        if (!(event.getLevel().getBlockEntity(pos) instanceof ConsoleBlockEntity console)) {
             return;
         }
         if (!RetroServerConfig.consolesEnabled()) {
@@ -135,7 +153,7 @@ public final class RetroHandheldsClient {
             player.displayClientMessage(Component.translatable("message.retrohandhelds.no_cartridge"), true);
             return;
         }
-        ConsoleSessions.powerOn(event.getPos(), cartridge);
+        ConsoleSessions.powerOn(pos, cartridge);
     }
 
     private static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {

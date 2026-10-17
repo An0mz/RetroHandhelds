@@ -1,5 +1,7 @@
 package dev.anomz.retrohandhelds.block;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -9,11 +11,12 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Where one TV sits in its screen: a filled rectangle of TVs facing the same way, seen from the
- * front. {@code col} counts from the viewer's left, {@code row} from the bottom.
+ * front. {@code col} counts from the viewer's left, {@code row} from the bottom. A wall bigger than
+ * {@link #MAX_SIZE} on a side is {@code tooBig} and shows nothing: each TV would only see part of it.
  */
-public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int col, int row) {
+public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int col, int row, boolean tooBig) {
     /** Biggest screen in blocks per side; also bounds the work done per check. */
-    public static final int MAX_SIZE = 8;
+    public static final int MAX_SIZE = 16;
     private static final Direction[] DIRECTIONS = Direction.values();
 
     /** The screen {@code pos} belongs to; a single 1x1 screen if its neighbours don't form a filled rectangle. */
@@ -24,11 +27,14 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
         int toRight = extent(level, pos, right, facing);
         int down = extent(level, pos, Direction.DOWN, facing);
         int up = extent(level, pos, Direction.UP, facing);
-        int cols = Math.min(left + toRight + 1, MAX_SIZE);
-        int rows = Math.min(down + up + 1, MAX_SIZE);
+        int cols = left + toRight + 1;
+        int rows = down + up + 1;
         BlockPos origin = pos.relative(right, -left).below(down);
-        TvLayout layout = new TvLayout(origin, right, cols, rows, left, down);
-        return layout.isFilled(level, facing) ? layout : new TvLayout(pos, right, 1, 1, 0, 0);
+        if (cols > MAX_SIZE || rows > MAX_SIZE) {
+            return new TvLayout(origin, right, Math.min(cols, MAX_SIZE), Math.min(rows, MAX_SIZE), left, down, true);
+        }
+        TvLayout layout = new TvLayout(origin, right, cols, rows, left, down, false);
+        return layout.isFilled(level, facing) ? layout : new TvLayout(pos, right, 1, 1, 0, 0, false);
     }
 
     /**
@@ -41,7 +47,10 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
             BlockState state = level.getBlockState(pos);
             if (state.getBlock() instanceof TvBlock) {
                 Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
-                return of(level, pos, facing).frontCenter(facing);
+                TvLayout layout = of(level, pos, facing);
+                if (!layout.tooBig()) {
+                    return layout.frontCenter(facing);
+                }
             }
         }
         return Vec3.atCenterOf(console);
@@ -58,14 +67,38 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
 
     /** Whether {@code target} touches any TV of this screen (shares a face with it). */
     public boolean touches(BlockPos target) {
+        Direction facing = right.getClockWise();
+        int dx = target.getX() - origin.getX();
+        int dz = target.getZ() - origin.getZ();
+        int c = dx * right.getStepX() + dz * right.getStepZ();
+        int r = target.getY() - origin.getY();
+        int depth = dx * facing.getStepX() + dz * facing.getStepZ();
+        boolean inCols = c >= 0 && c < cols;
+        boolean inRows = r >= 0 && r < rows;
+        if (depth == 1 || depth == -1) {
+            // In front of or behind a TV.
+            return inCols && inRows;
+        }
+        // Beside the screen's edge, in its plane.
+        return depth == 0 && (inRows && (c == -1 || c == cols) || inCols && (r == -1 || r == rows));
+    }
+
+    /** A console block touching this screen, or null. */
+    @Nullable
+    public BlockPos findConsole(BlockGetter level) {
+        BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                if (cell(c, r).distManhattan(target) == 1) {
-                    return true;
+                BlockPos cell = cell(c, r);
+                for (Direction direction : DIRECTIONS) {
+                    neighbor.setWithOffset(cell, direction);
+                    if (level.getBlockState(neighbor).getBlock() instanceof ConsoleBlock) {
+                        return neighbor.immutable();
+                    }
                 }
             }
         }
-        return false;
+        return null;
     }
 
     private BlockPos cell(int c, int r) {
@@ -83,9 +116,10 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
         return true;
     }
 
+    /** TVs in a row from {@code pos}; stops one past {@link #MAX_SIZE} so too-big walls can be told apart. */
     private static int extent(BlockGetter level, BlockPos pos, Direction step, Direction facing) {
         int n = 0;
-        while (n < MAX_SIZE - 1 && isTv(level.getBlockState(pos.relative(step, n + 1)), facing)) {
+        while (n < MAX_SIZE && isTv(level.getBlockState(pos.relative(step, n + 1)), facing)) {
             n++;
         }
         return n;

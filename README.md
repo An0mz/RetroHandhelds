@@ -40,7 +40,7 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 
 ### Retro TV
 
-Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 8x8) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen.
+Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 16x16) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen. Right-click the screen with an empty hand to play, just like the console.
 
 ROMs never leave your computer: a cartridge only stores the ROM's file name. In multiplayer, each player needs the ROM in their own `roms` folder.
 
