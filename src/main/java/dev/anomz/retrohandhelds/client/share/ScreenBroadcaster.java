@@ -1,34 +1,45 @@
 package dev.anomz.retrohandhelds.client.share;
 
+import java.util.Objects;
 import java.util.concurrent.locks.LockSupport;
 
 import org.jetbrains.annotations.Nullable;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.RetroServerConfig;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.AudioRingBuffer;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import dev.anomz.retrohandhelds.item.CartridgeData;
+import dev.anomz.retrohandhelds.item.HandheldItem;
 import dev.anomz.retrohandhelds.network.ShareAudioPayload;
 import dev.anomz.retrohandhelds.network.ShareStripPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Shares the picture and sound of the console this player is playing, so nearby players can see and
- * hear it. Encoding runs on its own thread; packets are sent from the main thread. Nothing is sent
- * (and the sound isn't even copied) when nobody else is near the console.
+ * Shares the picture and sound of the game this player is playing, on a console or on the handheld in
+ * their hand, so nearby players can see and hear it. Encoding runs on its own thread; packets are sent
+ * from the main thread. Nothing is sent (and the sound isn't even copied) when nobody else is near.
  */
 public final class ScreenBroadcaster {
     /** How often the sharing thread wakes up; sound must be drained at least this often. */
     private static final long LOOP_NANOS = 50_000_000L;
 
-    private record Target(BlockPos pos, EmulatorSession session, int fps) {
+    /** @param pos the console, or {@link BlockPos#ZERO} (unused) for a handheld */
+    private record Target(boolean handheld, BlockPos pos, EmulatorSession session, int fps) {
+        boolean sameSource(@Nullable Target other) {
+            return other != null && handheld == other.handheld && session == other.session && pos.equals(other.pos);
+        }
     }
 
     @Nullable
@@ -64,18 +75,44 @@ public final class ScreenBroadcaster {
 
     @Nullable
     private static Target computeTarget(Minecraft minecraft) {
-        BlockPos pos = ConsoleSessions.activeConsolePos();
-        EmulatorSession session = ConsoleSessions.activeConsoleSession();
-        if (pos == null || session == null || minecraft.player == null || minecraft.level == null
-                || minecraft.getConnection() == null || session.isPaused()
+        if (minecraft.player == null || minecraft.level == null || minecraft.getConnection() == null
                 || !RetroServerConfig.screenSharingEnabled() || !RetroClientConfig.shareMyScreen()) {
             return null;
         }
-        Vec3 center = Vec3.atCenterOf(pos);
+        BlockPos pos = ConsoleSessions.activeConsolePos();
+        EmulatorSession session = ConsoleSessions.activeConsoleSession();
+        boolean handheld = false;
+        Vec3 center;
+        if (pos != null && session != null) {
+            center = Vec3.atCenterOf(pos);
+        } else {
+            // A handheld is only shared while it's in a hand, where others can see it.
+            ConsoleSessions.Active active = ConsoleSessions.activeHandheld();
+            if (active == null || !holds(minecraft.player, active.cartridge())) {
+                return null;
+            }
+            session = active.session();
+            pos = BlockPos.ZERO;
+            handheld = true;
+            center = minecraft.player.position();
+        }
+        if (session.isPaused()) {
+            return null;
+        }
         double radius = RetroServerConfig.screenShareRadius();
         boolean someoneNear = minecraft.level.players().stream()
                 .anyMatch(p -> p != minecraft.player && p.distanceToSqr(center) <= radius * radius);
-        return someoneNear ? new Target(pos, session, RetroServerConfig.screenShareFps()) : null;
+        return someoneNear ? new Target(handheld, pos, session, RetroServerConfig.screenShareFps()) : null;
+    }
+
+    private static boolean holds(Player player, @Nullable CartridgeData cartridge) {
+        for (InteractionHand hand : InteractionHand.values()) {
+            ItemStack stack = player.getItemInHand(hand);
+            if (stack.is(RetroRegistries.HANDHELD) && Objects.equals(HandheldItem.cartridgeData(stack), cartridge)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void run() {
@@ -99,8 +136,8 @@ public final class ScreenBroadcaster {
                     continue;
                 }
                 AudioRingBuffer ring = current.session().sharedAudio();
-                if (last == null || !current.pos().equals(last.pos()) || current.session() != last.session()) {
-                    // New console or new game: everyone nearby needs the full picture and fresh sound.
+                if (!current.sameSource(last)) {
+                    // New console, handheld or game: everyone nearby needs the full picture and fresh sound.
                     strips.reset();
                     sound.reset();
                     downmixer = null;
@@ -110,6 +147,7 @@ public final class ScreenBroadcaster {
                 }
                 last = current;
                 BlockPos pos = current.pos();
+                boolean handheld = current.handheld();
 
                 // Sound: drain everything since last time, mix down, send whole packets.
                 int rate = current.session().sampleRate();
@@ -123,7 +161,7 @@ public final class ScreenBroadcaster {
                         monoCount += downmixer.process(stereo, available, mono, monoCount);
                     }
                     while (monoCount >= AudioCodec.PACKET_SAMPLES) {
-                        send(new ShareAudioPayload(pos, sound.encode(mono, 0)));
+                        send(new ShareAudioPayload(handheld, pos, sound.encode(mono, 0)));
                         monoCount -= AudioCodec.PACKET_SAMPLES;
                         System.arraycopy(mono, AudioCodec.PACKET_SAMPLES, mono, 0, monoCount);
                     }
@@ -139,7 +177,7 @@ public final class ScreenBroadcaster {
                         int width = size[0];
                         int height = size[1];
                         strips.encode(pixels, width, height,
-                                (strip, data) -> send(new ShareStripPayload(pos, width, height, strip, data)));
+                                (strip, data) -> send(new ShareStripPayload(handheld, pos, width, height, strip, data)));
                     }
                 }
                 LockSupport.parkNanos(LOOP_NANOS);

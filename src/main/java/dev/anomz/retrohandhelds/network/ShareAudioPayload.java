@@ -9,11 +9,15 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Client to server: about 93 ms of the sound of the console this player is playing (encoded, opaque to the server). */
-public record ShareAudioPayload(BlockPos console, byte[] data) implements CustomPacketPayload {
+/**
+ * Client to server: about 93 ms of the sound this player is playing, on a console or on the handheld
+ * in their hand ({@code console} is ignored then). Encoded; opaque to the server.
+ */
+public record ShareAudioPayload(boolean handheld, BlockPos console, byte[] data) implements CustomPacketPayload {
     public static final Type<ShareAudioPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(RetroHandhelds.MODID, "share_audio"));
     public static final StreamCodec<ByteBuf, ShareAudioPayload> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL, ShareAudioPayload::handheld,
             BlockPos.STREAM_CODEC, ShareAudioPayload::console,
             ByteBufCodecs.byteArray(ScreenShare.AUDIO_PACKET_BYTES), ShareAudioPayload::data,
             ShareAudioPayload::new);
@@ -24,11 +28,11 @@ public record ShareAudioPayload(BlockPos console, byte[] data) implements Custom
     }
 
     /** Runs on the server thread. */
-    public static void handle(ShareAudioPayload payload, IPayloadContext context) {
-        if (payload.data().length != ScreenShare.AUDIO_PACKET_BYTES) {
+    public static void handle(ShareAudioPayload p, IPayloadContext context) {
+        if (p.data().length != ScreenShare.AUDIO_PACKET_BYTES) {
             return;
         }
-        ShareRelay.relay(context, payload.console(), payload.data().length,
-                new AudioChunkPayload(payload.console(), payload.data()));
+        ShareRelay.relay(context, p.handheld(), p.console(), p.data().length,
+                player -> new AudioChunkPayload(player, p.console(), p.data()));
     }
 }

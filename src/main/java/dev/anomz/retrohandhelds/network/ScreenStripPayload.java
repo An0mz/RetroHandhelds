@@ -10,12 +10,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Server to client: one strip of another player's console screen. */
-public record ScreenStripPayload(BlockPos console, int width, int height, int strip, byte[] data)
+/**
+ * Server to client: one strip of another player's game, from a console ({@code player} is -1) or from
+ * the handheld in that player's hand ({@code player} is their entity id, set by the server).
+ */
+public record ScreenStripPayload(int player, BlockPos console, int width, int height, int strip, byte[] data)
         implements CustomPacketPayload {
     public static final Type<ScreenStripPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(RetroHandhelds.MODID, "screen_strip"));
     public static final StreamCodec<ByteBuf, ScreenStripPayload> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, ScreenStripPayload::player,
             BlockPos.STREAM_CODEC, ScreenStripPayload::console,
             ByteBufCodecs.VAR_INT, ScreenStripPayload::width,
             ByteBufCodecs.VAR_INT, ScreenStripPayload::height,
@@ -29,7 +33,7 @@ public record ScreenStripPayload(BlockPos console, int width, int height, int st
     }
 
     /** Runs on the client main thread. RemoteScreens is only touched here, so servers never load it. */
-    public static void handle(ScreenStripPayload payload, IPayloadContext context) {
-        RemoteScreens.receive(payload.console(), payload.width(), payload.height(), payload.strip(), payload.data());
+    public static void handle(ScreenStripPayload p, IPayloadContext context) {
+        RemoteScreens.receive(p.player(), p.console(), p.width(), p.height(), p.strip(), p.data());
     }
 }

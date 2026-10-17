@@ -14,13 +14,18 @@ import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.ScreenImage;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 
-/** Pictures other players share from their consoles, keyed by console position. Main/render thread only. */
+/**
+ * Pictures other players share: from consoles, keyed by console position, and from the handhelds in
+ * their hands, keyed by player entity id. Main/render thread only.
+ */
 public final class RemoteScreens {
     /** Caps texture memory if many consoles are being played nearby. */
     private static final int MAX_SCREENS = 16;
@@ -28,25 +33,35 @@ public final class RemoteScreens {
     private static final long EXPIRE_MS = 3000;
 
     private static final Map<BlockPos, RemoteScreen> SCREENS = new LinkedHashMap<>();
+    private static final Int2ObjectMap<RemoteScreen> HANDHELDS = new Int2ObjectOpenHashMap<>();
     private static final ScreenStrips.Decoder DECODER = new ScreenStrips.Decoder();
     private static int nextId;
 
     private RemoteScreens() {
     }
 
-    /** A strip arrived from the server. */
-    public static void receive(BlockPos pos, int width, int height, int strip, byte[] data) {
-        // Our own game on that console is already drawn from the real thing.
-        if (!RetroClientConfig.showOtherScreens() || ConsoleSessions.displayAt(pos) != null) {
+    /** A strip arrived from the server: from a console, or from the handheld of {@code player} if it isn't -1. */
+    public static void receive(int player, BlockPos pos, int width, int height, int strip, byte[] data) {
+        if (!RetroClientConfig.showOtherScreens()) {
             return;
         }
-        RemoteScreen screen = SCREENS.get(pos);
-        if (screen == null) {
-            if (SCREENS.size() >= MAX_SCREENS) {
-                removeOldest();
+        RemoteScreen screen;
+        if (player >= 0) {
+            screen = HANDHELDS.get(player);
+            if (screen == null) {
+                screen = newScreen();
+                HANDHELDS.put(player, screen);
             }
-            screen = new RemoteScreen(nextId++);
-            SCREENS.put(pos.immutable(), screen);
+        } else {
+            // Our own game on that console is already drawn from the real thing.
+            if (ConsoleSessions.displayAt(pos) != null) {
+                return;
+            }
+            screen = SCREENS.get(pos);
+            if (screen == null) {
+                screen = newScreen();
+                SCREENS.put(pos.immutable(), screen);
+            }
         }
         if (DECODER.decode(data, strip, width, height, screen.pixels)) {
             screen.width = width;
@@ -56,9 +71,22 @@ public final class RemoteScreens {
         }
     }
 
+    private static RemoteScreen newScreen() {
+        if (SCREENS.size() + HANDHELDS.size() >= MAX_SCREENS) {
+            removeOldest();
+        }
+        return new RemoteScreen(nextId++);
+    }
+
     @Nullable
     public static ScreenImage at(BlockPos pos) {
         return SCREENS.get(pos);
+    }
+
+    /** The game shared from the handheld held by the player with entity id {@code player}. */
+    @Nullable
+    public static ScreenImage forPlayer(int player) {
+        return HANDHELDS.get(player);
     }
 
     /** Consoles currently shown from other players, for TVs to check. */
@@ -68,8 +96,12 @@ public final class RemoteScreens {
 
     /** Client tick: drop screens whose player stopped sharing. */
     public static void tick() {
-        long now = Util.getMillis();
-        Iterator<RemoteScreen> it = SCREENS.values().iterator();
+        expire(SCREENS.values(), Util.getMillis());
+        expire(HANDHELDS.values(), Util.getMillis());
+    }
+
+    private static void expire(Collection<RemoteScreen> screens, long now) {
+        Iterator<RemoteScreen> it = screens.iterator();
         while (it.hasNext()) {
             RemoteScreen screen = it.next();
             if (now - screen.lastUpdate > EXPIRE_MS || !RetroClientConfig.showOtherScreens()) {
@@ -82,18 +114,27 @@ public final class RemoteScreens {
     public static void clear() {
         SCREENS.values().forEach(RemoteScreen::close);
         SCREENS.clear();
+        HANDHELDS.values().forEach(RemoteScreen::close);
+        HANDHELDS.clear();
     }
 
     private static void removeOldest() {
-        BlockPos oldest = null;
-        for (Map.Entry<BlockPos, RemoteScreen> entry : SCREENS.entrySet()) {
-            if (oldest == null || entry.getValue().lastUpdate < SCREENS.get(oldest).lastUpdate) {
-                oldest = entry.getKey();
-            }
+        RemoteScreen oldest = null;
+        for (RemoteScreen screen : SCREENS.values()) {
+            oldest = older(oldest, screen);
+        }
+        for (RemoteScreen screen : HANDHELDS.values()) {
+            oldest = older(oldest, screen);
         }
         if (oldest != null) {
-            SCREENS.remove(oldest).close();
+            oldest.close();
+            SCREENS.values().remove(oldest);
+            HANDHELDS.values().remove(oldest);
         }
+    }
+
+    private static RemoteScreen older(@Nullable RemoteScreen a, RemoteScreen b) {
+        return a == null || b.lastUpdate < a.lastUpdate ? b : a;
     }
 
     /** What to draw for the console at {@code pos}: this client's own game, else one shared by another player. */

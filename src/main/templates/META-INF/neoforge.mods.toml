@@ -23,6 +23,9 @@ issueTrackerURL="https://github.com/An0mz/RetroHandhelds/issues" #optional
 # The modid of the mod
 modId="${mod_id}" #mandatory
 
+# Adds the two-handed arm pose for holding a handheld (client only)
+enumExtensions="META-INF/enumextensions.json"
+
 # The version number of the mod
 version="${mod_version}" #mandatory
 

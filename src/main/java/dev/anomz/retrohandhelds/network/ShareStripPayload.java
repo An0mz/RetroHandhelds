@@ -11,14 +11,15 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * Client to server: one strip of the picture of the console this player is playing. The server
- * only checks and forwards it to nearby players; it never decodes it.
+ * Client to server: one strip of the picture this player is playing, on a console or on the handheld
+ * in their hand ({@code console} is ignored then). The server only checks and forwards it; it never decodes it.
  */
-public record ShareStripPayload(BlockPos console, int width, int height, int strip, byte[] data)
+public record ShareStripPayload(boolean handheld, BlockPos console, int width, int height, int strip, byte[] data)
         implements CustomPacketPayload {
     public static final Type<ShareStripPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(RetroHandhelds.MODID, "share_strip"));
     public static final StreamCodec<ByteBuf, ShareStripPayload> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL, ShareStripPayload::handheld,
             BlockPos.STREAM_CODEC, ShareStripPayload::console,
             ByteBufCodecs.VAR_INT, ShareStripPayload::width,
             ByteBufCodecs.VAR_INT, ShareStripPayload::height,
@@ -32,12 +33,12 @@ public record ShareStripPayload(BlockPos console, int width, int height, int str
     }
 
     /** Runs on the server thread. */
-    public static void handle(ShareStripPayload payload, IPayloadContext context) {
-        if (!ScreenShare.validStrip(payload.width(), payload.height(), payload.strip(), payload.data().length)) {
+    public static void handle(ShareStripPayload p, IPayloadContext context) {
+        if (!ScreenShare.validStrip(p.width(), p.height(), p.strip(), p.data().length)) {
             return;
         }
-        ShareRelay.relay(context, payload.console(), payload.data().length,
-                new ScreenStripPayload(payload.console(), payload.width(), payload.height(), payload.strip(), payload.data()));
+        ShareRelay.relay(context, p.handheld(), p.console(), p.data().length,
+                player -> new ScreenStripPayload(player, p.console(), p.width(), p.height(), p.strip(), p.data()));
     }
 
     /** Forgets a player's sharing budget (picture and sound) when they log out. */

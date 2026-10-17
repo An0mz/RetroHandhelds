@@ -124,6 +124,19 @@ public final class AudioOutput implements AutoCloseable {
         }
     }
 
+    /** Moves a sound opened with {@link #openAt} (it follows a player around). */
+    public void moveTo(double x, double y, double z) {
+        if (broken) {
+            return;
+        }
+        try {
+            alSource3f(source, AL_POSITION, (float) x, (float) y, (float) z);
+        } catch (Throwable t) {
+            broken = true;
+            RetroHandhelds.LOGGER.error("Retro Handhelds: could not move shared sound", t);
+        }
+    }
+
     /** Moves finished buffers back to the free list and refills them from the ring. */
     public void pump(float gain) {
         if (broken || paused) {

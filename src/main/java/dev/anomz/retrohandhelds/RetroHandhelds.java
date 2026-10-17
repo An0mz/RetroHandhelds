@@ -38,7 +38,7 @@ public final class RetroHandhelds {
     }
 
     private static void onRegisterPayloads(RegisterPayloadHandlersEvent event) {
-        event.registrar("1")
+        event.registrar("2")
                 .playToServer(AssignRomPayload.TYPE, AssignRomPayload.STREAM_CODEC, AssignRomPayload::handle)
                 .playToServer(ShareStripPayload.TYPE, ShareStripPayload.STREAM_CODEC, ShareStripPayload::handle)
                 .playToClient(ScreenStripPayload.TYPE, ScreenStripPayload.STREAM_CODEC, ScreenStripPayload::handle)

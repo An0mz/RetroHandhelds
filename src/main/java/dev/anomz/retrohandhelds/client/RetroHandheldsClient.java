@@ -11,7 +11,9 @@ import dev.anomz.retrohandhelds.client.input.GamepadInput;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
+import dev.anomz.retrohandhelds.client.render.HandheldArmPose;
 import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
+import dev.anomz.retrohandhelds.client.render.HeldHandheldLayer;
 import dev.anomz.retrohandhelds.client.render.TvRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
@@ -21,6 +23,8 @@ import dev.anomz.retrohandhelds.client.share.ScreenBroadcaster;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -37,6 +41,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -54,6 +59,8 @@ public final class RetroHandheldsClient {
         modEventBus.addListener(JoypadButton::registerAll);
         modEventBus.addListener(EmulatorKeys::registerAll);
         modEventBus.addListener(RetroHandheldsClient::onRegisterRenderers);
+        modEventBus.addListener(RetroHandheldsClient::onAddLayers);
+        modEventBus.addListener(RetroHandheldsClient::onRegisterClientExtensions);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRegisterClientCommands);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onClientTick);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onLoggingOut);
@@ -73,6 +80,19 @@ public final class RetroHandheldsClient {
     private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(RetroRegistries.CONSOLE_BLOCK_ENTITY.get(), ConsoleRenderer::new);
         event.registerBlockEntityRenderer(RetroRegistries.TV_BLOCK_ENTITY.get(), TvRenderer::new);
+    }
+
+    /** The game on handhelds held by players seen from outside. */
+    private static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (PlayerSkin.Model skin : event.getSkins()) {
+            if (event.getSkin(skin) instanceof PlayerRenderer renderer) {
+                renderer.addLayer(new HeldHandheldLayer(renderer));
+            }
+        }
+    }
+
+    private static void onRegisterClientExtensions(RegisterClientExtensionsEvent event) {
+        event.registerItem(HandheldArmPose.EXTENSIONS, RetroRegistries.HANDHELD.get());
     }
 
     private static void onRegisterClientCommands(RegisterClientCommandsEvent event) {

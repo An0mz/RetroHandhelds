@@ -55,7 +55,9 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 
 ## Multiplayer
 
-When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it, and hear it coming from the console: full volume within 4 blocks, fading out by 32. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; sound is sent as compressed mono (about 11 KB/s). Nothing is sent when nobody is near. Other players' handhelds are not shared yet.
+When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it, and hear it coming from the console: full volume within 4 blocks, fading out by 32. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; sound is sent as compressed mono (about 11 KB/s). Nothing is sent when nobody is near.
+
+Handhelds are shared too: while you hold one in your hand, nearby players see you holding it in front of you with the game on its screen, and hear the sound following you around.
 
 Each player who wants to *play* a cartridge needs that ROM in their own `roms` folder.
 

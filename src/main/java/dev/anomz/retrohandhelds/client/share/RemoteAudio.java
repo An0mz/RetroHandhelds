@@ -1,5 +1,6 @@
 package dev.anomz.retrohandhelds.client.share;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -8,15 +9,18 @@ import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.audio.AudioOutput;
 import dev.anomz.retrohandhelds.client.emu.AudioRingBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Sound other players share from their consoles, played from each console's position with distance
- * falloff, like Minecraft's own sounds. Main thread only.
+ * Sound other players share, with distance falloff like Minecraft's own sounds: from each console's
+ * position, or from the player holding the handheld, following them as they move. Main thread only.
  */
 public final class RemoteAudio {
     private static final int MAX_SOURCES = 8;
@@ -26,45 +30,63 @@ public final class RemoteAudio {
     private static final float SILENT_DISTANCE = 32;
     /** About 1.5 s of shared sound. */
     private static final int RING_SAMPLES = 1 << 15;
+    /** A handheld's sound comes from about chest height. */
+    private static final double HANDHELD_HEIGHT = 1.2;
 
-    private static final Map<BlockPos, Source> SOURCES = new HashMap<>();
+    private static final Map<BlockPos, Source> CONSOLES = new HashMap<>();
+    private static final Int2ObjectMap<Source> HANDHELDS = new Int2ObjectOpenHashMap<>();
     private static final short[] DECODED = new short[AudioCodec.PACKET_SAMPLES];
 
     private RemoteAudio() {
     }
 
-    /** A sound packet arrived from the server. */
-    public static void receive(BlockPos pos, byte[] data) {
+    /** A sound packet arrived from the server: from a console, or from the handheld of {@code player} if it isn't -1. */
+    public static void receive(int player, BlockPos pos, byte[] data) {
         // Our own game on that console is already playing from the real thing.
-        if (!RetroClientConfig.showOtherScreens() || ConsoleSessions.displayAt(pos) != null
+        if (!RetroClientConfig.showOtherScreens() || (player < 0 && ConsoleSessions.displayAt(pos) != null)
                 || !AudioCodec.decode(data, DECODED)) {
             return;
         }
-        Source source = SOURCES.get(pos);
+        Source source = player >= 0 ? HANDHELDS.get(player) : CONSOLES.get(pos);
         if (source == null) {
-            if (SOURCES.size() >= MAX_SOURCES) {
+            if (CONSOLES.size() + HANDHELDS.size() >= MAX_SOURCES) {
                 return;
             }
-            source = Source.open(pos);
-            if (source == null) {
+            Vec3 at = player >= 0 ? handheldPosition(player) : Vec3.atCenterOf(pos);
+            if (at == null || (source = Source.open(at)) == null) {
                 return;
             }
-            SOURCES.put(pos.immutable(), source);
+            if (player >= 0) {
+                HANDHELDS.put(player, source);
+            } else {
+                CONSOLES.put(pos.immutable(), source);
+            }
         }
         source.ring.write(DECODED, AudioCodec.PACKET_SAMPLES);
         source.lastUpdate = Util.getMillis();
     }
 
-    /** Client tick: feed OpenAL and drop sources whose player stopped sharing. */
+    /** Client tick: feed OpenAL, follow handheld players and drop sources whose player stopped sharing. */
     public static void tick(Minecraft minecraft) {
-        if (SOURCES.isEmpty()) {
+        if (CONSOLES.isEmpty() && HANDHELDS.isEmpty()) {
             return;
         }
         float playerVolume = RetroClientConfig.muted() ? 0
                 : RetroClientConfig.volume() / (float) RetroClientConfig.VOLUME_STEPS;
         float gain = minecraft.options.getSoundSourceVolume(SoundSource.RECORDS) * playerVolume;
         long now = Util.getMillis();
-        Iterator<Source> it = SOURCES.values().iterator();
+        for (Int2ObjectMap.Entry<Source> entry : HANDHELDS.int2ObjectEntrySet()) {
+            Entity player = minecraft.level == null ? null : minecraft.level.getEntity(entry.getIntKey());
+            if (player != null) {
+                entry.getValue().output.moveTo(player.getX(), player.getY() + HANDHELD_HEIGHT, player.getZ());
+            }
+        }
+        pump(CONSOLES.values(), gain, now);
+        pump(HANDHELDS.values(), gain, now);
+    }
+
+    private static void pump(Collection<Source> sources, float gain, long now) {
+        Iterator<Source> it = sources.iterator();
         while (it.hasNext()) {
             Source source = it.next();
             if (now - source.lastUpdate > EXPIRE_MS || !RetroClientConfig.showOtherScreens()) {
@@ -77,8 +99,16 @@ public final class RemoteAudio {
     }
 
     public static void clear() {
-        SOURCES.values().forEach(source -> source.output.close());
-        SOURCES.clear();
+        CONSOLES.values().forEach(source -> source.output.close());
+        CONSOLES.clear();
+        HANDHELDS.values().forEach(source -> source.output.close());
+        HANDHELDS.clear();
+    }
+
+    private static Vec3 handheldPosition(int player) {
+        Minecraft minecraft = Minecraft.getInstance();
+        Entity entity = minecraft.level == null ? null : minecraft.level.getEntity(player);
+        return entity == null ? null : entity.position().add(0, HANDHELD_HEIGHT, 0);
     }
 
     private static final class Source {
@@ -91,10 +121,9 @@ public final class RemoteAudio {
             this.output = output;
         }
 
-        static Source open(BlockPos pos) {
+        static Source open(Vec3 at) {
             AudioRingBuffer ring = new AudioRingBuffer(RING_SAMPLES);
-            Vec3 center = Vec3.atCenterOf(pos);
-            return AudioOutput.openAt(ring, AudioCodec.SAMPLE_RATE, center.x, center.y, center.z,
+            return AudioOutput.openAt(ring, AudioCodec.SAMPLE_RATE, at.x, at.y, at.z,
                             FULL_VOLUME_DISTANCE, SILENT_DISTANCE)
                     .map(output -> new Source(ring, output))
                     .orElse(null);

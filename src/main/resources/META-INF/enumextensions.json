@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "enum": "net/minecraft/client/model/HumanoidModel$ArmPose",
+      "name": "RETROHANDHELDS_HANDHELD",
+      "constructor": "(ZLnet/neoforged/neoforge/client/IArmPoseTransformer;)V",
+      "parameters": {
+        "class": "dev/anomz/retrohandhelds/client/render/HandheldArmPose",
+        "field": "POSE"
+      }
+    }
+  ]
+}

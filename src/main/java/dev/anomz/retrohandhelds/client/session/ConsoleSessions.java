@@ -177,6 +177,13 @@ public final class ConsoleSessions {
         return current == null || current.pos() == null ? null : current.session();
     }
 
+    /** The game running on a handheld here, or null (no game, or it runs on a console). */
+    @Nullable
+    public static Active activeHandheld() {
+        Active current = active;
+        return current != null && current.handheld() ? current : null;
+    }
+
     public static boolean activePaused() {
         Active current = active;
         return current != null && current.session().isPaused();
