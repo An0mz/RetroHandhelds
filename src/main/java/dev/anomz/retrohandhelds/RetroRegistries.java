@@ -2,6 +2,8 @@ package dev.anomz.retrohandhelds;
 
 import dev.anomz.retrohandhelds.block.ConsoleBlock;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
+import dev.anomz.retrohandhelds.block.TvBlock;
+import dev.anomz.retrohandhelds.block.TvBlockEntity;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.CartridgeItem;
 import dev.anomz.retrohandhelds.item.HandheldItem;
@@ -30,6 +32,9 @@ public final class RetroRegistries {
     public static final DeferredBlock<ConsoleBlock> CONSOLE = BLOCKS.register("console", () -> new ConsoleBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(1.5f).sound(SoundType.METAL)));
     public static final DeferredItem<BlockItem> CONSOLE_ITEM = ITEMS.registerSimpleBlockItem("console", CONSOLE);
+    public static final DeferredBlock<TvBlock> TV = BLOCKS.register("tv", () -> new TvBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_BLACK).strength(1.0f).sound(SoundType.METAL)));
+    public static final DeferredItem<BlockItem> TV_ITEM = ITEMS.registerSimpleBlockItem("tv", TV);
     public static final DeferredItem<CartridgeItem> CARTRIDGE = ITEMS.register("cartridge",
             () -> new CartridgeItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<HandheldItem> HANDHELD = ITEMS.register("handheld",
@@ -38,6 +43,9 @@ public final class RetroRegistries {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ConsoleBlockEntity>> CONSOLE_BLOCK_ENTITY =
             BLOCK_ENTITY_TYPES.register("console",
                     () -> BlockEntityType.Builder.of(ConsoleBlockEntity::new, CONSOLE.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TvBlockEntity>> TV_BLOCK_ENTITY =
+            BLOCK_ENTITY_TYPES.register("tv",
+                    () -> BlockEntityType.Builder.of(TvBlockEntity::new, TV.get()).build(null));
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CartridgeData>> CARTRIDGE_DATA =
             DATA_COMPONENTS.registerComponentType("cartridge",

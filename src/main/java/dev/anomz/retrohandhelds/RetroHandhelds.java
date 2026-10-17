@@ -39,6 +39,7 @@ public final class RetroHandhelds {
     private static void onBuildCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(RetroRegistries.CONSOLE_ITEM);
+            event.accept(RetroRegistries.TV_ITEM);
         } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(RetroRegistries.CARTRIDGE);
             event.accept(RetroRegistries.HANDHELD);

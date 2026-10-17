@@ -60,5 +60,6 @@
   "screen.retrohandhelds.view.world": "In-world view",
   "screen.retrohandhelds.view.fullscreen": "Full-screen view",
   "screen.retrohandhelds.view.unavailable": "Only full screen: nothing to watch in the world",
-  "retrohandhelds.configuration.inWorldView": "Start in In-World View"
+  "retrohandhelds.configuration.inWorldView": "Start in In-World View",
+  "block.retrohandhelds.tv": "Retro TV"
 }

@@ -12,6 +12,7 @@ import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
 import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
+import dev.anomz.retrohandhelds.client.render.TvRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.item.CartridgeData;
@@ -68,6 +69,7 @@ public final class RetroHandheldsClient {
 
     private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(RetroRegistries.CONSOLE_BLOCK_ENTITY.get(), ConsoleRenderer::new);
+        event.registerBlockEntityRenderer(RetroRegistries.TV_BLOCK_ENTITY.get(), TvRenderer::new);
     }
 
     private static void onRegisterClientCommands(RegisterClientCommandsEvent event) {

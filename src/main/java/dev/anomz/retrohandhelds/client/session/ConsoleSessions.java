@@ -170,6 +170,13 @@ public final class ConsoleSessions {
                 ? current.display() : null;
     }
 
+    /** The console block whose game is running on this client, if the running game is on a console. */
+    @Nullable
+    public static BlockPos activeConsolePos() {
+        Active current = active;
+        return current == null ? null : current.pos();
+    }
+
     @Nullable
     public static SessionDisplay displayAt(BlockPos pos) {
         Active current = active;
