@@ -31,6 +31,7 @@ public final class RetroHandhelds {
             event.accept(RetroRegistries.CONSOLE_ITEM);
         } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(RetroRegistries.CARTRIDGE);
+            event.accept(RetroRegistries.HANDHELD);
         }
     }
 }

@@ -31,5 +31,9 @@
   "key.retrohandhelds.volume_up": "Volume Up",
   "message.retrohandhelds.muted": "Retro Console muted",
   "message.retrohandhelds.volume": "Retro Console volume: %s%%",
-  "screen.retrohandhelds.power_off": "Power Off"
+  "screen.retrohandhelds.power_off": "Power Off",
+  "item.retrohandhelds.handheld": "Retro Handheld",
+  "item.retrohandhelds.handheld.named": "Retro Handheld (%s)",
+  "item.retrohandhelds.handheld.empty": "Right-click a cartridge onto it in your inventory",
+  "message.retrohandhelds.handheld_empty": "No cartridge: right-click one onto the handheld in your inventory"
 }

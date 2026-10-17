@@ -11,10 +11,12 @@ import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.item.CartridgeData;
+import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -85,8 +87,19 @@ public final class RetroHandheldsClient {
     }
 
     private static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
-        if (event.getLevel().isClientSide() && event.getItemStack().is(RetroRegistries.CARTRIDGE)) {
+        if (!event.getLevel().isClientSide()) {
+            return;
+        }
+        ItemStack stack = event.getItemStack();
+        if (stack.is(RetroRegistries.CARTRIDGE)) {
             Minecraft.getInstance().setScreen(new RomPickerScreen(event.getHand()));
+        } else if (stack.is(RetroRegistries.HANDHELD)) {
+            CartridgeData cartridge = HandheldItem.cartridgeData(stack);
+            if (cartridge == null) {
+                event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handheld_empty"), true);
+            } else {
+                ConsoleSessions.powerOnHandheld(cartridge);
+            }
         }
     }
 

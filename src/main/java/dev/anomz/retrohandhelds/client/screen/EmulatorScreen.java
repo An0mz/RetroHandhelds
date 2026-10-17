@@ -11,6 +11,7 @@ import dev.anomz.retrohandhelds.client.emu.StateResult;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import dev.anomz.retrohandhelds.client.session.SessionDisplay;
 import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
@@ -83,12 +84,15 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        active.display().update();
+        SessionDisplay display = active.display();
+        display.update();
         graphics.fill(0, 0, width, height, 0xFF000000);
-        float scale = Math.min(width / (float) W, height / (float) H);
-        int w = (int) (W * scale);
-        int h = (int) (H * scale);
-        graphics.blit(active.display().textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, W, H, W, H);
+        int frameWidth = display.width();
+        int frameHeight = display.height();
+        float scale = Math.min(width / (float) frameWidth, height / (float) frameHeight);
+        int w = (int) (frameWidth * scale);
+        int h = (int) (frameHeight * scale);
+        graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
 
         renderHint(graphics);
         if (status != null && Util.getMillis() - statusAtMs < STATUS_VISIBLE_MS) {
@@ -216,6 +220,11 @@ public final class EmulatorScreen extends Screen {
             }
         }
         return matched;
+    }
+
+    /** Whether this screen shows {@code session}. */
+    public boolean shows(ConsoleSessions.Active session) {
+        return active == session;
     }
 
     @Override

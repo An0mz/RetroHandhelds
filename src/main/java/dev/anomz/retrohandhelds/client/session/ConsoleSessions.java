@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.Nullable;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
@@ -17,6 +18,7 @@ import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.item.CartridgeData;
+import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -24,8 +26,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The one running emulator on this client (libretro allows only one) and the console it belongs to,
- * if any. Render thread only.
+ * The one running emulator on this client (libretro allows only one) and what it belongs to: a
+ * console block, a handheld item, or nothing (the play command). Render thread only.
  */
 public final class ConsoleSessions {
     /** Full volume within this distance from the console. */
@@ -40,8 +42,12 @@ public final class ConsoleSessions {
     private static int volumeLevel = VOLUME_STEPS;
     private static boolean muted;
 
+    /**
+     * @param pos the console block, or null for a handheld or the play command
+     * @param handheld whether it runs on a handheld item in the player's inventory
+     */
     public record Active(EmulatorSession session, SessionDisplay display, @Nullable BlockPos pos,
-            @Nullable CartridgeData cartridge, String romFile) {
+            @Nullable CartridgeData cartridge, boolean handheld, String romFile) {
         boolean isRunning() {
             EmulatorSession.State state = session.state();
             return state == EmulatorSession.State.STARTING || state == EmulatorSession.State.RUNNING;
@@ -56,7 +62,7 @@ public final class ConsoleSessions {
 
     /** For the play command: a session not tied to any block. */
     public static Optional<Active> startStandalone(String romFile, Consumer<Component> onError) {
-        return start(romFile, null, null, onError);
+        return start(romFile, null, null, false, onError);
     }
 
     /** Right-click on a console: reuse its running session or start one, then open the screen. */
@@ -66,12 +72,19 @@ public final class ConsoleSessions {
         Optional<Active> session = current != null && pos.equals(current.pos())
                 && cartridge.equals(current.cartridge()) && current.isRunning()
                 ? Optional.of(current)
-                : start(cartridge.romFile(), pos, cartridge, message -> minecraft.player.displayClientMessage(message, true));
+                : start(cartridge.romFile(), pos, cartridge, false, message -> minecraft.player.displayClientMessage(message, true));
         session.ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, false)));
     }
 
+    /** Right-click with a handheld: plays its cartridge until the screen closes. */
+    public static void powerOnHandheld(CartridgeData cartridge) {
+        Minecraft minecraft = Minecraft.getInstance();
+        start(cartridge.romFile(), null, cartridge, true, message -> minecraft.player.displayClientMessage(message, true))
+                .ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, true)));
+    }
+
     private static Optional<Active> start(String romFile, @Nullable BlockPos pos, @Nullable CartridgeData cartridge,
-            Consumer<Component> onError) {
+            boolean handheld, Consumer<Component> onError) {
         Optional<Path> rom = RomLibrary.resolve(romFile);
         if (rom.isEmpty()) {
             onError.accept(Component.translatable("message.retrohandhelds.rom_missing", romFile));
@@ -96,7 +109,7 @@ public final class ConsoleSessions {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();
         }
-        active = new Active(session, new SessionDisplay(session.frames()), pos, cartridge, romFile);
+        active = new Active(session, new SessionDisplay(session.frames()), pos, cartridge, handheld, romFile);
         return Optional.of(active);
     }
 
@@ -106,6 +119,11 @@ public final class ConsoleSessions {
             active = null;
             current.session().stop();
             current.display().close();
+            // Stopped from elsewhere (console broken, handheld gone): don't leave its screen open.
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.screen instanceof EmulatorScreen screen && screen.shows(current)) {
+                minecraft.setScreen(null);
+            }
         }
     }
 
@@ -155,6 +173,11 @@ public final class ConsoleSessions {
             return;
         }
         float volume = minecraft.options.getSoundSourceVolume(SoundSource.RECORDS);
+        if (current.handheld() && !minecraft.player.getInventory().contains(
+                stack -> stack.is(RetroRegistries.HANDHELD) && Objects.equals(HandheldItem.cartridgeData(stack), current.cartridge()))) {
+            stop();
+            return;
+        }
         BlockPos pos = current.pos();
         if (pos != null) {
             // Block broken, chunk unloaded or cartridge swapped by someone: switch off.

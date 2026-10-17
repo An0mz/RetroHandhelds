@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IGI",
+    "RIR"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "G": { "item": "minecraft:glass_pane" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "id": "retrohandhelds:handheld", "count": 1 }
+}

@@ -4,6 +4,7 @@ import dev.anomz.retrohandhelds.block.ConsoleBlock;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.CartridgeItem;
+import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -31,6 +32,8 @@ public final class RetroRegistries {
     public static final DeferredItem<BlockItem> CONSOLE_ITEM = ITEMS.registerSimpleBlockItem("console", CONSOLE);
     public static final DeferredItem<CartridgeItem> CARTRIDGE = ITEMS.register("cartridge",
             () -> new CartridgeItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<HandheldItem> HANDHELD = ITEMS.register("handheld",
+            () -> new HandheldItem(new Item.Properties().stacksTo(1)));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ConsoleBlockEntity>> CONSOLE_BLOCK_ENTITY =
             BLOCK_ENTITY_TYPES.register("console",
