@@ -18,7 +18,8 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
 - Also runs Game Boy and Game Boy Color games.
-- Server-friendly: all emulation runs on each player's own computer, so the server does no extra work.
+- Multiplayer: players near a console see the game being played on it and on its TVs.
+- Server-friendly: all emulation runs on each player's own computer; the server only forwards compressed pictures, within limits the owner sets.
 
 ## Requirements
 
@@ -51,6 +52,12 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 | Retro Handheld | `IGI / RIR` (iron ingot, glass pane, redstone) |
 | Cartridge | Shapeless: iron ingot + redstone + paper |
 | Retro TV (x2) | `IGI / GRG / IGI` (iron ingot, glass pane, redstone) |
+
+## Multiplayer
+
+When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; nothing is sent when nobody is near. Sound and other players' handhelds are not shared yet.
+
+Each player who wants to *play* a cartridge needs that ROM in their own `roms` folder.
 
 ## Controls
 
@@ -98,8 +105,19 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 | `gamepadEnabled` | true | |
 | `gamepadDeadzone` | 35 | Left stick deadzone, in % |
 | `gamepadPositionalAB` | false | Use Nintendo button positions instead of pad labels |
+| `shareMyScreen` | true | Let nearby players see your game |
+| `showOtherScreens` | true | Show games other players share |
 
-**Server settings** (`config/retrohandhelds-server.toml`): `enableConsoles` and `enableHandhelds`. When off, games can't be started, but cartridges can always be ejected.
+**Server settings** (`config/retrohandhelds-server.toml`):
+
+| Option | Default | |
+|---|---|---|
+| `enableConsoles` | true | When off, consoles can't start games; cartridges can always be ejected |
+| `enableHandhelds` | true | |
+| `screenSharing` | true | Let nearby players see games played on consoles |
+| `screenShareFps` | 10 | Pictures per second (1-20) |
+| `screenShareRadius` | 32 | Blocks around the console |
+| `screenShareKBps` | 96 | Bandwidth limit per sharing player; extra is dropped |
 
 ## Commands
 
@@ -112,7 +130,7 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 ./gradlew build
 ```
 
-The jar is written to `build/libs/`. `./gradlew runClient` starts a development client. Requires JDK 21.
+The jar is written to `build/libs/`. `./gradlew runClient` starts a development client, `./gradlew runServer` a dedicated server, and `./gradlew runClient2` a second player (Player2, own folder) for testing multiplayer. Requires JDK 21.
 
 ## Legal
 
