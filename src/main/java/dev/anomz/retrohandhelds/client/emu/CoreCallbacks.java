@@ -19,25 +19,28 @@ final class CoreCallbacks {
     // Fields, not locals: JNA only keeps weak references, and the core keeps calling these.
     final MgbaCore.EnvironmentCallback environment = this::environment;
     final MgbaCore.VideoRefreshCallback videoRefresh = this::videoRefresh;
-    final MgbaCore.AudioSampleCallback audioSample = (left, right) -> {
-    };
-    final MgbaCore.AudioSampleBatchCallback audioSampleBatch = (data, frames) -> frames;
+    final MgbaCore.AudioSampleCallback audioSample = this::audioSample;
+    final MgbaCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
     final MgbaCore.InputPollCallback inputPoll = this::inputPoll;
     final MgbaCore.InputStateCallback inputState = this::inputState;
 
     private final FrameBuffer frames;
     private final JoypadState joypad;
+    private final AudioRingBuffer audio;
     private final Memory systemDir;
     private final Memory saveDir;
     private final int[] row32 = new int[FrameBuffer.WIDTH];
     private final short[] row16 = new short[FrameBuffer.WIDTH];
+    private final short[] audioScratch = new short[4096];
+    private final short[] audioPair = new short[2];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
     private int polledButtons;
     private boolean errorLogged;
 
-    CoreCallbacks(FrameBuffer frames, JoypadState joypad, Path systemDir, Path saveDir) {
+    CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, Path systemDir, Path saveDir) {
         this.frames = frames;
         this.joypad = joypad;
+        this.audio = audio;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
     }
@@ -104,6 +107,29 @@ final class CoreCallbacks {
         } catch (Throwable t) {
             logOnce("video refresh", t);
         }
+    }
+
+    private long audioSampleBatch(Pointer data, long frameCount) {
+        try {
+            if (data != null) {
+                long total = frameCount * 2;
+                for (long done = 0; done < total; ) {
+                    int n = (int) Math.min(total - done, audioScratch.length);
+                    data.read(done * Short.BYTES, audioScratch, 0, n);
+                    audio.write(audioScratch, n);
+                    done += n;
+                }
+            }
+        } catch (Throwable t) {
+            logOnce("audio batch", t);
+        }
+        return frameCount;
+    }
+
+    private void audioSample(short left, short right) {
+        audioPair[0] = left;
+        audioPair[1] = right;
+        audio.write(audioPair, 2);
     }
 
     // One snapshot per frame, so every input_state call within retro_run sees the same buttons.

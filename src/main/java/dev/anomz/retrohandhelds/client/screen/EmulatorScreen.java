@@ -16,6 +16,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 
 /** Full-screen view of a running session. Closing the screen stops the session. */
 public final class EmulatorScreen extends Screen {
@@ -39,6 +40,7 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     protected void init() {
+        updateVolume();
         // init() runs again on every resize; the texture only needs creating once.
         if (texture == null) {
             texture = new DynamicTexture(W, H, true);
@@ -65,10 +67,16 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void tick() {
+        updateVolume();
         // Key releases are lost while the window is unfocused, so drop everything instead of sticking.
         if (!minecraft.isWindowActive()) {
             session.joypad().clear();
         }
+    }
+
+    // Follows the Jukebox/Note Blocks slider; Minecraft's listener already applies Master.
+    private void updateVolume() {
+        session.setVolume(minecraft.options.getSoundSourceVolume(SoundSource.RECORDS));
     }
 
     @Override

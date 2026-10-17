@@ -51,14 +51,14 @@ public final class RetroHandheldsCommand {
 
     private static int play(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "rom");
-        Optional<EmulatorSession> session = startSession(ctx.getSource(), name);
+        Optional<EmulatorSession> session = startSession(ctx.getSource(), name, true);
         session.ifPresent(s -> Minecraft.getInstance().setScreen(new EmulatorScreen(s, name)));
         return session.isPresent() ? 1 : 0;
     }
 
     private static int test(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "rom");
-        Optional<EmulatorSession> session = startSession(ctx.getSource(), name);
+        Optional<EmulatorSession> session = startSession(ctx.getSource(), name, false);
         session.ifPresent(s -> {
             ctx.getSource().sendSuccess(() -> Component.literal("Running " + name + " for " + DebugFrameTest.RUN_SECONDS + " seconds..."), false);
             DebugFrameTest.scheduleFinish(s);
@@ -66,7 +66,7 @@ public final class RetroHandheldsCommand {
         return session.isPresent() ? 1 : 0;
     }
 
-    private static Optional<EmulatorSession> startSession(CommandSourceStack source, String name) {
+    private static Optional<EmulatorSession> startSession(CommandSourceStack source, String name, boolean withSound) {
         Path roms = RetroPaths.roms().toAbsolutePath().normalize();
         Path rom;
         try {
@@ -87,7 +87,7 @@ public final class RetroHandheldsCommand {
         }
 
         try {
-            return Optional.of(EmulatorSession.start(core.get(), rom, RetroPaths.system(), RetroPaths.saves()));
+            return Optional.of(EmulatorSession.start(core.get(), rom, RetroPaths.system(), RetroPaths.saves(), withSound));
         } catch (IllegalStateException e) {
             source.sendFailure(Component.literal("An emulator session is already running."));
             return Optional.empty();

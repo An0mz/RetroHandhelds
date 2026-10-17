@@ -8,6 +8,8 @@ import java.util.concurrent.locks.LockSupport;
 
 import com.sun.jna.Memory;
 
+import dev.anomz.retrohandhelds.client.audio.AudioOutput;
+
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.RetroGameInfo;
@@ -25,31 +27,38 @@ public final class EmulatorSession {
     private static final double GBA_FPS = 59.7275;
     private static final int MAX_FRAMES_BEHIND = 5;
     private static final long JOIN_TIMEOUT_MS = 2000;
+    /** Half a second of stereo audio at mGBA's 65536 Hz output rate. */
+    private static final int AUDIO_RING_SAMPLES = 1 << 16;
 
     private final MgbaCore core;
     private final Path rom;
     private final FrameBuffer frames = new FrameBuffer();
     private final JoypadState joypad = new JoypadState();
+    private final AudioRingBuffer audio = new AudioRingBuffer(AUDIO_RING_SAMPLES);
+    private final boolean withSound;
     private final CoreCallbacks callbacks;
     private final Thread thread;
     private volatile boolean running = true;
     private volatile State state = State.STARTING;
     private volatile String failure;
+    private volatile float volume = 1f;
     // Kept as fields so the ROM memory stays reachable while the core may still read it.
     private Memory romData;
     private RetroGameInfo gameInfo;
+    private AudioOutput audioOutput;
 
-    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir) {
+    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, boolean withSound) {
         this.core = core;
         this.rom = rom;
-        this.callbacks = new CoreCallbacks(frames, joypad, systemDir, saveDir);
+        this.withSound = withSound;
+        this.callbacks = new CoreCallbacks(frames, joypad, audio, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
     }
 
     /** @throws IllegalStateException if another session is still active */
-    public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir) {
-        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir);
+    public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir, boolean withSound) {
+        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, withSound);
         if (!ACTIVE.compareAndSet(null, session)) {
             throw new IllegalStateException("An emulator session is already running");
         }
@@ -83,6 +92,11 @@ public final class EmulatorSession {
 
     public FrameBuffer frames() {
         return frames;
+    }
+
+    /** Gain for the emulator's sound, 0..1. Safe to call from any thread. */
+    public void setVolume(float volume) {
+        this.volume = volume;
     }
 
     public JoypadState joypad() {
@@ -127,8 +141,11 @@ public final class EmulatorSession {
             RetroSystemAvInfo av = new RetroSystemAvInfo();
             core.retro_get_system_av_info(av);
             double fps = av.timing.fps > 1 && av.timing.fps < 240 ? av.timing.fps : GBA_FPS;
-            RetroHandhelds.LOGGER.info("Retro Handhelds: running {} ({}x{} @ {} fps)",
-                    rom.getFileName(), av.geometry.baseWidth, av.geometry.baseHeight, fps);
+            RetroHandhelds.LOGGER.info("Retro Handhelds: running {} ({}x{} @ {} fps, audio {} Hz)",
+                    rom.getFileName(), av.geometry.baseWidth, av.geometry.baseHeight, fps, av.timing.sampleRate);
+            if (withSound) {
+                audioOutput = AudioOutput.open(audio, (int) av.timing.sampleRate).orElse(null);
+            }
 
             state = State.RUNNING;
             loop((long) (TimeUnit.SECONDS.toNanos(1) / fps));
@@ -136,6 +153,9 @@ public final class EmulatorSession {
             RetroHandhelds.LOGGER.error("Retro Handhelds: emulator session for {} failed", rom.getFileName(), t);
             fail(t.toString());
         } finally {
+            if (audioOutput != null) {
+                audioOutput.close();
+            }
             shutdownCore(initialized, loaded);
             if (state != State.FAILED) {
                 state = State.STOPPED;
@@ -148,6 +168,9 @@ public final class EmulatorSession {
         long next = System.nanoTime();
         while (running) {
             core.retro_run();
+            if (audioOutput != null) {
+                audioOutput.pump(volume);
+            }
             next += periodNanos;
             long wait = next - System.nanoTime();
             if (wait > 0) {
