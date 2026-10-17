@@ -2,6 +2,8 @@ package dev.anomz.retrohandhelds.client.input;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import java.util.Arrays;
+
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFWGamepadState;
 
@@ -27,6 +29,8 @@ public final class GamepadInput {
 
     /** The current libretro joypad bitmask from the gamepad, or 0 if none is connected or it is disabled. */
     public static int poll(boolean discLayout) {
+        // A pad that went away must not leave its sticks pushed.
+        Arrays.fill(axes, 0);
         if (!RetroClientConfig.gamepadEnabled()) {
             return 0;
         }
@@ -59,6 +63,11 @@ public final class GamepadInput {
             }
             return 0;
         }
+    }
+
+    /** One stick axis from the last {@link #poll}, as a libretro analog value (y down, like GLFW). */
+    public static short stick(int glfwAxis) {
+        return GamepadMapping.stickValue(axes[glfwAxis]);
     }
 
     /**

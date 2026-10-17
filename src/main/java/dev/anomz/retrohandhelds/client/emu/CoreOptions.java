@@ -1,12 +1,16 @@
 package dev.anomz.retrohandhelds.client.emu;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.sun.jna.Memory;
 
 /**
- * The mGBA core options this mod sets. Any thread may call {@link #set}; the emulator thread answers
- * the core's GET_VARIABLE / GET_VARIABLE_UPDATE requests from it. Unlisted options keep mGBA's defaults.
+ * The core options this mod sets: mGBA's display options, which the player can change while playing
+ * (any thread may call {@link #set}), plus fixed values for other cores, set before the game starts.
+ * The emulator thread answers the core's GET_VARIABLE / GET_VARIABLE_UPDATE requests from it.
+ * Unlisted options keep the core's defaults.
  */
 public final class CoreOptions {
     static final String COLOR_CORRECTION = "mgba_color_correction";
@@ -20,10 +24,17 @@ public final class CoreOptions {
     private volatile boolean colorCorrection;
     private volatile boolean lcdGhosting;
     private volatile boolean changed;
+    private final Map<String, Memory> fixed = new HashMap<>();
 
     public CoreOptions(boolean colorCorrection, boolean lcdGhosting) {
         this.colorCorrection = colorCorrection;
         this.lcdGhosting = lcdGhosting;
+    }
+
+    /** Answers {@code key} with {@code value}. Call before the session starts. */
+    public CoreOptions fixed(String key, String value) {
+        fixed.put(key, nativeString(value));
+        return this;
     }
 
     /** Applies new settings; the core picks them up on its next frame. */
@@ -41,7 +52,7 @@ public final class CoreOptions {
             // "Auto" picks GBA or GBC correction to match the game.
             case COLOR_CORRECTION -> colorCorrection ? AUTO : OFF;
             case INTERFRAME_BLENDING -> lcdGhosting ? LCD_GHOSTING : OFF;
-            default -> null;
+            default -> fixed.get(key);
         };
     }
 

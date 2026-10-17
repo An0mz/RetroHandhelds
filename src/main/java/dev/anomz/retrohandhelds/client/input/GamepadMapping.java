@@ -6,6 +6,8 @@ import static org.lwjgl.glfw.GLFW.*;
 /** Turns a GLFW gamepad state (standard Xbox-style layout) into a libretro joypad bitmask. */
 public final class GamepadMapping {
     private static final float TRIGGER_THRESHOLD = 0.5f;
+    /** Sticks used as sticks (not as a D-pad) ignore this much drift around the centre. */
+    private static final float STICK_DEADZONE = 0.12f;
 
     private GamepadMapping() {
     }
@@ -40,6 +42,8 @@ public final class GamepadMapping {
             mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_Y), DEVICE_ID_JOYPAD_X);
             mask |= bit(leftTrigger, DEVICE_ID_JOYPAD_L2);
             mask |= bit(rightTrigger, DEVICE_ID_JOYPAD_R2);
+            mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_LEFT_THUMB), DEVICE_ID_JOYPAD_L3);
+            mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_RIGHT_THUMB), DEVICE_ID_JOYPAD_R3);
             leftTrigger = false;
             rightTrigger = false;
         }
@@ -55,6 +59,16 @@ public final class GamepadMapping {
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_DPAD_LEFT) || x < -deadzone, DEVICE_ID_JOYPAD_LEFT);
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_DPAD_RIGHT) || x > deadzone, DEVICE_ID_JOYPAD_RIGHT);
         return mask;
+    }
+
+    /** A stick axis (-1..1) as a libretro analog value, rescaled past a small deadzone so slow movement still works. */
+    public static short stickValue(float axis) {
+        float magnitude = Math.abs(axis);
+        if (magnitude <= STICK_DEADZONE) {
+            return 0;
+        }
+        float scaled = Math.min(1, (magnitude - STICK_DEADZONE) / (1 - STICK_DEADZONE));
+        return (short) Math.round(Math.copySign(scaled, axis) * Short.MAX_VALUE);
     }
 
     private static boolean pressed(byte[] buttons, int button) {

@@ -62,7 +62,12 @@ public final class RetroHandheldsCommand {
             source.sendFailure(Component.translatable("message.retrohandhelds.rom_missing", name));
             return 0;
         }
-        CoreKind kind = CoreKind.forRom(name);
+        CoreKind kind = CoreKind.forRom(rom.get());
+        CoreOptions options = ConsoleSessions.optionsFor(kind, false, false);
+        if (options == null) {
+            source.sendFailure(Component.literal("No PS2 BIOS found in retro_handhelds/system/pcsx2/bios"));
+            return 0;
+        }
         Optional<LibretroCore> core = NativeLoader.load(kind);
         if (core.isEmpty()) {
             source.sendFailure(Component.translatable("message.retrohandhelds.core_missing"));
@@ -71,7 +76,7 @@ public final class RetroHandheldsCommand {
         EmulatorSession session;
         try {
             session = EmulatorSession.start(core.get(), kind, rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
-                    new CoreOptions(false, false));
+                    options);
         } catch (IllegalStateException e) {
             source.sendFailure(Component.translatable("message.retrohandhelds.busy"));
             return 0;

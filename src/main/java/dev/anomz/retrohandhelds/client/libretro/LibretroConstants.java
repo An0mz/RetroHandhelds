@@ -36,6 +36,13 @@ public final class LibretroConstants {
     public static final int DEVICE_ID_JOYPAD_R = 11;
     public static final int DEVICE_ID_JOYPAD_L2 = 12;
     public static final int DEVICE_ID_JOYPAD_R2 = 13;
+    public static final int DEVICE_ID_JOYPAD_L3 = 14;
+    public static final int DEVICE_ID_JOYPAD_R3 = 15;
+    public static final int DEVICE_ANALOG = 5;
+    public static final int DEVICE_INDEX_ANALOG_LEFT = 0;
+    public static final int DEVICE_INDEX_ANALOG_RIGHT = 1;
+    public static final int DEVICE_ID_ANALOG_X = 0;
+    public static final int DEVICE_ID_ANALOG_Y = 1;
     /** Asks for all buttons at once as a bitmask. */
     public static final int DEVICE_ID_JOYPAD_MASK = 256;
 

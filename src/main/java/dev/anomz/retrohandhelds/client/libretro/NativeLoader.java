@@ -45,7 +45,9 @@ public final class NativeLoader {
     public static void preloadAsync() {
         Thread thread = new Thread(() -> {
             for (CoreKind kind : CoreKind.values()) {
-                load(kind);
+                if (kind.preload()) {
+                    load(kind);
+                }
             }
         }, "RetroHandhelds-CoreLoader");
         thread.setDaemon(true);

@@ -1,8 +1,8 @@
 # Retro Handhelds
 
-Play your own GBA and PS1 games inside Minecraft. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
+Play your own GBA, PS1 and PS2 games inside Minecraft. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
 
-Powered by [mGBA](https://mgba.io) and [PCSX ReARMed](https://github.com/libretro/pcsx_rearmed). **No games or BIOS files are included; you bring your own.**
+Powered by [mGBA](https://mgba.io), [PCSX ReARMed](https://github.com/libretro/pcsx_rearmed) and [LRPS2](https://github.com/libretro/ps2). **No games or BIOS files are included; you bring your own.**
 
 ![Build](https://github.com/An0mz/RetroHandhelds/actions/workflows/build.yml/badge.svg)
 
@@ -19,6 +19,7 @@ Powered by [mGBA](https://mgba.io) and [PCSX ReARMed](https://github.com/libretr
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
 - Also runs Game Boy and Game Boy Color games, and PS1 discs (`.cue`/`.bin`, `.chd`, `.iso`, `.pbp`, `.m3u` for multi-disc games).
+- **Experimental:** PS2 discs (`.iso`, `.cso`, `.chd`...), with your own PS2 BIOS. See [PS2 games](#ps2-games-experimental).
 - Multiplayer: players near a console see and hear the game being played on it, on its TVs too.
 - Server-friendly: all emulation runs on each player's own computer; the server only forwards compressed pictures, within limits the owner sets.
 
@@ -31,7 +32,7 @@ Powered by [mGBA](https://mgba.io) and [PCSX ReARMed](https://github.com/libretr
 ## Getting started
 
 1. Start Minecraft once with the mod installed. It creates `retro_handhelds/roms/` in your Minecraft folder (next to `mods/`).
-2. Put your own `.gba`, `.gb` or `.gbc` files, or PS1 disc images, in `retro_handhelds/roms/`. For a `.cue` game, keep its `.bin` files next to it; the list only shows the `.cue`.
+2. Put your own `.gba`, `.gb` or `.gbc` files, or PS1/PS2 disc images, in `retro_handhelds/roms/`. For a `.cue` game, keep its `.bin` files next to it; the list only shows the `.cue`.
 3. Craft a **Cartridge**, hold it and right-click: pick a ROM from the list.
 4. Play it:
    - **Console:** place a Retro Console, right-click it with the cartridge to insert, then right-click with an empty hand to power on. Sneak + right-click with an empty hand ejects the cartridge.
@@ -48,6 +49,12 @@ Place a Retro TV so it touches a console. When that console runs a game, the TV 
 Sneak + right-click a console, or a TV screen connected to one, to link the remote. Then right-click with the remote anywhere within 48 blocks of the console to play it.
 
 ROMs never leave your computer: a cartridge only stores the ROM's file name. In multiplayer, each player needs the ROM in their own `roms` folder.
+
+### PS2 games (experimental)
+
+PS2 discs are recognised automatically and run on LRPS2's software renderer, which uses the CPU only. That keeps the emulator from touching Minecraft's graphics, but it needs a fast CPU: a modern 8-core processor or better is recommended.
+
+PS2 games need a BIOS dumped from **your own** PS2 console (it is copyrighted, and the mod never includes or downloads one). Put the BIOS files in `retro_handhelds/system/pcsx2/bios/`; the first `.bin` there is used. Memory cards are saved in `retro_handhelds/saves/`.
 
 ### Recipes
 
@@ -78,6 +85,7 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 | L / R | A / S | Bumpers or triggers |
 | X / Y (disc games) | D / C | Y / X by position |
 | L2 / R2 (disc games) | Q / W | Triggers |
+| Analog sticks (PS2) | Arrow keys push the left stick | Left and right sticks; press them for L3 / R3 |
 | Start / Select | Enter / Backspace | Start / Back (Options / Share) |
 | Fast-forward (hold) | Tab | |
 | Full screen / in-world view | V | |
@@ -85,7 +93,7 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 | Mute, volume down/up | M, -, = (also in the world) | When you aren't playing, - and = change other players' volume |
 | Back to Minecraft | Esc | |
 
-For PS1 games the buttons follow the original pad's layout: B is the bottom button (cross), A the right one (circle), Y the left one (square) and X the top one (triangle). On a gamepad that's simply the button in the same position.
+For PS1 and PS2 games the buttons follow the original pad's layout: B is the bottom button (cross), A the right one (circle), Y the left one (square) and X the top one (triangle). On a gamepad that's simply the button in the same position.
 
 The game pauses when Minecraft pauses (singleplayer). On servers and LAN worlds Minecraft keeps running, and so does the game.
 
@@ -153,6 +161,7 @@ Retro Handhelds does not include, download or link to any games or BIOS files. O
 
 - Retro Handhelds is licensed under the [MIT License](LICENSE).
 - Emulation by [mGBA](https://github.com/mgba-emu/mgba) by Vicki Pfau and contributors, licensed under the Mozilla Public License 2.0 ([LICENSE-mGBA.txt](LICENSE-mGBA.txt)).
+- PS2 emulation by [LRPS2](https://github.com/libretro/ps2), the libretro port of [PCSX2](https://pcsx2.net) by the PCSX2 team and libretro contributors, licensed under the GNU GPL version 3 ([LICENSE-LRPS2.txt](LICENSE-LRPS2.txt)). Its source code is available at that link.
 - PS1 emulation by [PCSX ReARMed](https://github.com/libretro/pcsx_rearmed) by the PCSX, PCSX-Reloaded and PCSX ReARMed teams, licensed under the GNU GPL version 2 ([LICENSE-PCSX-ReARMed.txt](LICENSE-PCSX-ReARMed.txt)). Its source code is available at that link.
 - The bundled cores are the unmodified libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
 - Build files come from the [NeoForge MDK](https://github.com/NeoForged/MDK) template (MIT, notice included in [LICENSE](LICENSE)).

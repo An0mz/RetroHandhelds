@@ -43,6 +43,7 @@ final class CoreCallbacks {
     private final short[] audioPair = new short[2];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
     private int polledButtons;
+    private long polledSticks;
     /** Keep 1 of every N audio frames while fast-forwarding, so sound plays sped up instead of piling up. */
     private int audioDecimation = 1;
     private int decimationPhase;
@@ -200,16 +201,47 @@ final class CoreCallbacks {
     // One snapshot per frame, so every input_state call within retro_run sees the same buttons.
     private void inputPoll() {
         polledButtons = joypad.snapshot();
+        polledSticks = joypad.snapshotSticks();
     }
 
     private short inputState(int port, int device, int index, int id) {
-        if (port != 0 || device != DEVICE_JOYPAD || index != 0) {
+        if (port != 0) {
+            return 0;
+        }
+        if (device == DEVICE_ANALOG) {
+            return analog(index, id);
+        }
+        if (device != DEVICE_JOYPAD || index != 0) {
             return 0;
         }
         if (id == DEVICE_ID_JOYPAD_MASK) {
             return (short) polledButtons;
         }
         return (short) (id >= 0 && id < 16 ? polledButtons >> id & 1 : 0);
+    }
+
+    /**
+     * A stick axis. Without a gamepad stick, the D-pad pushes the left stick all the way, so
+     * keyboard players can still walk in games that only read the stick.
+     */
+    private short analog(int index, int id) {
+        if ((index != DEVICE_INDEX_ANALOG_LEFT && index != DEVICE_INDEX_ANALOG_RIGHT)
+                || (id != DEVICE_ID_ANALOG_X && id != DEVICE_ID_ANALOG_Y)) {
+            return 0; // includes pressure-sensitive buttons: cores fall back to the digital state
+        }
+        int base = index == DEVICE_INDEX_ANALOG_LEFT ? 0 : 2;
+        short x = JoypadState.axis(polledSticks, base);
+        short y = JoypadState.axis(polledSticks, base + 1);
+        if (index == DEVICE_INDEX_ANALOG_LEFT && x == 0 && y == 0) {
+            x = dpadAxis(DEVICE_ID_JOYPAD_LEFT, DEVICE_ID_JOYPAD_RIGHT);
+            y = dpadAxis(DEVICE_ID_JOYPAD_UP, DEVICE_ID_JOYPAD_DOWN);
+        }
+        return id == DEVICE_ID_ANALOG_X ? x : y;
+    }
+
+    private short dpadAxis(int negative, int positive) {
+        int value = (polledButtons >> positive & 1) - (polledButtons >> negative & 1);
+        return (short) (value * Short.MAX_VALUE);
     }
 
     static int xrgb8888ToAbgr(int p) {

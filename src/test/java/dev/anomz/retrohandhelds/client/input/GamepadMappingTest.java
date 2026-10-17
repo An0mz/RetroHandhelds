@@ -2,6 +2,7 @@ package dev.anomz.retrohandhelds.client.input;
 
 import static dev.anomz.retrohandhelds.client.libretro.LibretroConstants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lwjgl.glfw.GLFW.*;
 
 import org.junit.jupiter.api.Test;
@@ -85,6 +86,29 @@ class GamepadMappingTest {
         buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] = GLFW_PRESS;
         assertEquals(bits(DEVICE_ID_JOYPAD_L, DEVICE_ID_JOYPAD_L2, DEVICE_ID_JOYPAD_R2),
                 GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true));
+    }
+
+    @Test
+    void sticksIgnoreDriftAndReachFullScale() {
+        assertEquals(0, GamepadMapping.stickValue(0.05f));
+        assertEquals(0, GamepadMapping.stickValue(-0.1f));
+        assertEquals(Short.MAX_VALUE, GamepadMapping.stickValue(1f));
+        assertEquals(-Short.MAX_VALUE, GamepadMapping.stickValue(-1f));
+        short half = GamepadMapping.stickValue(0.56f);
+        assertTrue(half > 14000 && half < 19000, "half way: " + half);
+    }
+
+    @Test
+    void discLayoutThumbButtonsAreL3AndR3() {
+        byte[] buttons = new byte[GLFW_GAMEPAD_BUTTON_LAST + 1];
+        float[] axes = new float[GLFW_GAMEPAD_AXIS_LAST + 1];
+        axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = -1;
+        axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1;
+        buttons[GLFW_GAMEPAD_BUTTON_LEFT_THUMB] = GLFW_PRESS;
+        buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] = GLFW_PRESS;
+        assertEquals(bits(DEVICE_ID_JOYPAD_L3, DEVICE_ID_JOYPAD_R3),
+                GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true));
+        assertEquals(0, GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, false), "not used by handheld games");
     }
 
     @Test

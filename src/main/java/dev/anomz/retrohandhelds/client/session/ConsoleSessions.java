@@ -19,6 +19,7 @@ import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
 import dev.anomz.retrohandhelds.client.libretro.CoreKind;
+import dev.anomz.retrohandhelds.client.libretro.Lrps2Bios;
 import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
@@ -97,9 +98,15 @@ public final class ConsoleSessions {
             onError.accept(Component.translatable("message.retrohandhelds.rom_missing", romFile));
             return Optional.empty();
         }
-        CoreKind kind = CoreKind.forRom(romFile);
+        CoreKind kind = CoreKind.forRom(rom.get());
         if (kind == CoreKind.PCSX && RomLibrary.isDvdImage(rom.get())) {
             onError.accept(Component.translatable("message.retrohandhelds.dvd_game", RomNames.displayName(romFile)));
+            return Optional.empty();
+        }
+        CoreOptions options = optionsFor(kind, RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting());
+        if (options == null) {
+            onError.accept(Component.translatable("message.retrohandhelds.bios_missing",
+                    RetroPaths.system().relativize(Lrps2Bios.folder(RetroPaths.system())).toString()));
             return Optional.empty();
         }
         Optional<LibretroCore> core = NativeLoader.load(kind);
@@ -117,13 +124,34 @@ public final class ConsoleSessions {
         EmulatorSession session;
         try {
             session = EmulatorSession.start(core.get(), kind, rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
-                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()));
+                    options);
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();
         }
         active = new Active(session, new SessionDisplay(session.frames()), pos, cartridge, handheld, romFile);
         return Optional.of(active);
+    }
+
+    /**
+     * Core options for a game on {@code kind}, or null if it can't start: PS2 games need the
+     * player's own BIOS, and run on the all-CPU renderer so the core never needs a graphics context.
+     */
+    @Nullable
+    public static CoreOptions optionsFor(CoreKind kind, boolean colorCorrection, boolean lcdGhosting) {
+        CoreOptions options = new CoreOptions(colorCorrection, lcdGhosting);
+        if (kind == CoreKind.LRPS2) {
+            Optional<String> bios = Lrps2Bios.find(RetroPaths.system());
+            if (bios.isEmpty()) {
+                return null;
+            }
+            // Extra rasterizer threads: 4 holds 60 fps in heavy scenes on a fast CPU, 2 (the core's
+            // default) drops to ~45. Scaled to the CPU so Minecraft keeps enough for itself.
+            int threads = Math.clamp(Runtime.getRuntime().availableProcessors() / 4, 1, 6);
+            options.fixed("pcsx2_renderer", "Software (SW)").fixed("pcsx2_bios", bios.get())
+                    .fixed("pcsx2_sw_renderer_threads", Integer.toString(threads));
+        }
+        return options;
     }
 
     public static void stop() {

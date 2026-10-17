@@ -9,7 +9,6 @@ import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.StateResult;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
-import dev.anomz.retrohandhelds.client.libretro.CoreKind;
 import dev.anomz.retrohandhelds.client.input.GamepadInput;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
@@ -59,7 +58,7 @@ public final class EmulatorScreen extends Screen {
             showStatus(Component.translatable("screen.retrohandhelds.gamepad", pad));
         }
         // Built here, not per frame; bindings cannot change while this screen is open.
-        boolean disc = session.kind() == CoreKind.PCSX;
+        boolean disc = session.kind().discLayout();
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
                 disc ? hint(JoypadButton.A, JoypadButton.B, JoypadButton.X, JoypadButton.Y)
@@ -101,7 +100,9 @@ public final class EmulatorScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // Polled every frame here: GLFW needs the main thread, and a 20 Hz tick would add input lag.
-        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll(session.kind() == CoreKind.PCSX) : 0);
+        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll(session.kind().discLayout()) : 0);
+        session.joypad().setSticks(GamepadInput.stick(GLFW.GLFW_GAMEPAD_AXIS_LEFT_X), GamepadInput.stick(GLFW.GLFW_GAMEPAD_AXIS_LEFT_Y),
+                GamepadInput.stick(GLFW.GLFW_GAMEPAD_AXIS_RIGHT_X), GamepadInput.stick(GLFW.GLFW_GAMEPAD_AXIS_RIGHT_Y));
         SessionDisplay display = active.display();
         display.update();
         // In-world view draws nothing here: the world renders behind this screen, showing the game on
