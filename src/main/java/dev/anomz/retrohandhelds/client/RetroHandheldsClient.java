@@ -53,6 +53,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderHandEvent;
+import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
@@ -82,6 +83,7 @@ public final class RetroHandheldsClient {
         NeoForge.EVENT_BUS.addListener(HandheldInHandRenderer::onRenderHand);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderGui);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderHandHidden);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderBlockOutline);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -221,6 +223,13 @@ public final class RetroHandheldsClient {
     private static void onRenderHandHidden(RenderHandEvent event) {
         EmulatorScreen screen = worldView();
         if (screen != null && !screen.showsHandheld()) {
+            event.setCanceled(true);
+        }
+    }
+
+    /** No selection box on the console or TV being watched. */
+    private static void onRenderBlockOutline(RenderHighlightEvent.Block event) {
+        if (worldView() != null) {
             event.setCanceled(true);
         }
     }
