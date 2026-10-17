@@ -22,6 +22,11 @@ public final class RetroClientConfig {
             .comment("Blend each frame with the previous one, like the slow LCD of the original hardware.")
             .define("lcdGhosting", false);
 
+    private static final ModConfigSpec.BooleanValue IN_WORLD_VIEW = BUILDER
+            .comment("Open games in the in-world view (watch the console or handheld) instead of full screen.",
+                    "Toggled in game with the View key.")
+            .define("inWorldView", false);
+
     private static final ModConfigSpec.IntValue FAST_FORWARD_SPEED = BUILDER
             .comment("How fast the game runs while the Fast-Forward key is held (2-4x).")
             .defineInRange("fastForwardSpeed", 2, 2, 4);
@@ -56,6 +61,15 @@ public final class RetroClientConfig {
 
     public static boolean lcdGhosting() {
         return SPEC.isLoaded() && LCD_GHOSTING.get();
+    }
+
+    public static boolean inWorldView() {
+        return SPEC.isLoaded() && IN_WORLD_VIEW.get();
+    }
+
+    public static void setInWorldView(boolean inWorld) {
+        IN_WORLD_VIEW.set(inWorld);
+        IN_WORLD_VIEW.save();
     }
 
     public static int fastForwardSpeed() {

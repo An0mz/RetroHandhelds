@@ -35,6 +35,9 @@ public final class EmulatorScreen extends Screen {
     private final ConsoleSessions.Active active;
     private final EmulatorSession session;
     private final boolean stopOnClose;
+    /** Whether there is a console or handheld in the world to watch instead of the full-screen picture. */
+    private final boolean hasWorldView;
+    private boolean inWorldView;
     private final long openedAtMs = Util.getMillis();
     private List<Component> hintLines = List.of();
     private Component status;
@@ -45,6 +48,8 @@ public final class EmulatorScreen extends Screen {
         this.active = active;
         this.session = active.session();
         this.stopOnClose = stopOnClose;
+        this.hasWorldView = active.pos() != null || active.handheld();
+        this.inWorldView = hasWorldView && RetroClientConfig.inWorldView();
     }
 
     @Override
@@ -67,7 +72,8 @@ public final class EmulatorScreen extends Screen {
                         .append("Mute: ").append(EmulatorKeys.MUTE.getTranslatedKeyMessage())
                         .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
                         .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage())
-                        .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)"));
+                        .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)")
+                        .append("   View: ").append(EmulatorKeys.TOGGLE_VIEW.getTranslatedKeyMessage()));
     }
 
     private static Component hint(JoypadButton... buttons) {
@@ -96,13 +102,17 @@ public final class EmulatorScreen extends Screen {
         session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll() : 0);
         SessionDisplay display = active.display();
         display.update();
-        graphics.fill(0, 0, width, height, 0xFF000000);
-        int frameWidth = display.width();
-        int frameHeight = display.height();
-        float scale = Math.min(width / (float) frameWidth, height / (float) frameHeight);
-        int w = (int) (frameWidth * scale);
-        int h = (int) (frameHeight * scale);
-        graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
+        // In-world view draws nothing here: the world renders behind this screen, showing the game on
+        // the console block or the handheld in the player's hands.
+        if (!inWorldView) {
+            graphics.fill(0, 0, width, height, 0xFF000000);
+            int frameWidth = display.width();
+            int frameHeight = display.height();
+            float scale = Math.min(width / (float) frameWidth, height / (float) frameHeight);
+            int w = (int) (frameWidth * scale);
+            int h = (int) (frameHeight * scale);
+            graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
+        }
 
         renderHint(graphics);
         if (session.speed() > 1) {
@@ -123,6 +133,17 @@ public final class EmulatorScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // Nothing: render() fills black and draws the game instead of Minecraft's blurred menu background.
+    }
+
+    /** Switches between the full-screen picture and watching the game in the world; remembered in the config. */
+    private void toggleView() {
+        if (!hasWorldView) {
+            showStatus(Component.translatable("screen.retrohandhelds.view.unavailable"));
+            return;
+        }
+        inWorldView = !inWorldView;
+        RetroClientConfig.setInWorldView(inWorldView);
+        showStatus(Component.translatable(inWorldView ? "screen.retrohandhelds.view.world" : "screen.retrohandhelds.view.fullscreen"));
     }
 
     /** Shuts the console down (the cartridge stays in) and goes back to the world. */
@@ -158,6 +179,10 @@ public final class EmulatorScreen extends Screen {
         }
         if (matches(EmulatorKeys.LOAD_STATE, keyCode, scanCode)) {
             session.loadState().thenAccept(this::showStateResult);
+            return true;
+        }
+        if (matches(EmulatorKeys.TOGGLE_VIEW, keyCode, scanCode)) {
+            toggleView();
             return true;
         }
         if (matches(EmulatorKeys.FAST_FORWARD, keyCode, scanCode)) {

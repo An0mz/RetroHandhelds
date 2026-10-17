@@ -55,5 +55,10 @@
   "screen.retrohandhelds.gamepad": "Gamepad: %s",
   "retrohandhelds.configuration.gamepadEnabled": "Use Gamepad",
   "retrohandhelds.configuration.gamepadDeadzone": "Stick Deadzone (%)",
-  "retrohandhelds.configuration.gamepadPositionalAB": "Nintendo A/B Positions"
+  "retrohandhelds.configuration.gamepadPositionalAB": "Nintendo A/B Positions",
+  "key.retrohandhelds.toggle_view": "Toggle Full Screen / In-World View",
+  "screen.retrohandhelds.view.world": "In-world view",
+  "screen.retrohandhelds.view.fullscreen": "Full-screen view",
+  "screen.retrohandhelds.view.unavailable": "Only full screen: nothing to watch in the world",
+  "retrohandhelds.configuration.inWorldView": "Start in In-World View"
 }
