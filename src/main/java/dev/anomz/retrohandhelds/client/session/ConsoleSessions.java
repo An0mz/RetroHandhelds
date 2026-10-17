@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
+import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
@@ -37,11 +38,6 @@ public final class ConsoleSessions {
     private static final double SOUND_RANGE = 32;
     /** Walking further away than this switches the console off. */
     private static final double STOP_RANGE = 48;
-    private static final int VOLUME_STEPS = 10;
-
-    /** Player's own volume for the emulator, 0..VOLUME_STEPS, on top of the Jukebox/Note Blocks slider. */
-    private static int volumeLevel = VOLUME_STEPS;
-    private static boolean muted;
 
     /**
      * @param pos the console block, or null for a handheld or the play command
@@ -147,21 +143,22 @@ public final class ConsoleSessions {
     }
 
     public static Component toggleMute() {
-        muted = !muted;
+        RetroClientConfig.setMuted(!RetroClientConfig.muted());
         return volumeMessage();
     }
 
-    /** Changes the volume by whole steps of 10%; also unmutes. */
+    /** Changes the volume by whole steps of 10%; also unmutes. Saved to the client config. */
     public static Component changeVolume(int steps) {
-        volumeLevel = Math.clamp(volumeLevel + steps, 0, VOLUME_STEPS);
-        muted = false;
+        RetroClientConfig.setVolume(RetroClientConfig.volume() + steps);
+        RetroClientConfig.setMuted(false);
         return volumeMessage();
     }
 
     private static Component volumeMessage() {
-        return muted
+        return RetroClientConfig.muted()
                 ? Component.translatable("message.retrohandhelds.muted")
-                : Component.translatable("message.retrohandhelds.volume", volumeLevel * 100 / VOLUME_STEPS);
+                : Component.translatable("message.retrohandhelds.volume",
+                        RetroClientConfig.volume() * 100 / RetroClientConfig.VOLUME_STEPS);
     }
 
     /** The display of the handheld playing {@code cartridge}, if it is the one running. */
@@ -213,7 +210,7 @@ public final class ConsoleSessions {
                 volume *= (float) Math.clamp(1 - (distance - FULL_VOLUME_RANGE) / (SOUND_RANGE - FULL_VOLUME_RANGE), 0, 1);
             }
         }
-        float playerVolume = muted ? 0 : volumeLevel / (float) VOLUME_STEPS;
+        float playerVolume = RetroClientConfig.muted() ? 0 : RetroClientConfig.volume() / (float) RetroClientConfig.VOLUME_STEPS;
         current.session().setVolume(volume * playerVolume);
     }
 }
