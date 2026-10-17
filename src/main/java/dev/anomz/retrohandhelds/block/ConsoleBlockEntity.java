@@ -40,6 +40,12 @@ public class ConsoleBlockEntity extends BlockEntity {
         cartridge = newCartridge;
         setChanged();
         if (level != null) {
+            BlockState state = getBlockState();
+            boolean inserted = !newCartridge.isEmpty();
+            if (state.hasProperty(ConsoleBlock.CARTRIDGE) && state.getValue(ConsoleBlock.CARTRIDGE) != inserted) {
+                // Same block, so this block entity is kept; only the model changes.
+                level.setBlock(worldPosition, state.setValue(ConsoleBlock.CARTRIDGE, inserted), Block.UPDATE_ALL);
+            }
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
         return old;

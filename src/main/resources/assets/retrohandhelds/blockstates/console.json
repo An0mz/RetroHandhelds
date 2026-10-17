@@ -1,8 +1,80 @@
 {
-  "variants": {
-    "facing=north": { "model": "retrohandhelds:block/console" },
-    "facing=east": { "model": "retrohandhelds:block/console", "y": 90 },
-    "facing=south": { "model": "retrohandhelds:block/console", "y": 180 },
-    "facing=west": { "model": "retrohandhelds:block/console", "y": 270 }
-  }
+  "multipart": [
+    {
+      "when": {
+        "facing": "north"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "facing": "east"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "south"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "cartridge": "true"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console_cartridge",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "cartridge": "true"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console_cartridge",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "cartridge": "true"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console_cartridge",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "cartridge": "true"
+      },
+      "apply": {
+        "model": "retrohandhelds:block/console_cartridge",
+        "y": 270
+      }
+    }
+  ]
 }

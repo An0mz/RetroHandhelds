@@ -22,6 +22,7 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
@@ -31,10 +32,14 @@ import net.minecraft.world.phys.BlockHitResult;
  */
 public class ConsoleBlock extends BaseEntityBlock {
     public static final MapCodec<ConsoleBlock> CODEC = simpleCodec(ConsoleBlock::new);
+    /** Whether a cartridge is inserted; the model shows it sticking out of the top. */
+    public static final BooleanProperty CARTRIDGE = BooleanProperty.create("cartridge");
 
     public ConsoleBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH));
+        registerDefaultState(stateDefinition.any()
+                .setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH)
+                .setValue(CARTRIDGE, false));
     }
 
     @Override
@@ -44,7 +49,7 @@ public class ConsoleBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(HorizontalDirectionalBlock.FACING);
+        builder.add(HorizontalDirectionalBlock.FACING, CARTRIDGE);
     }
 
     @Override
