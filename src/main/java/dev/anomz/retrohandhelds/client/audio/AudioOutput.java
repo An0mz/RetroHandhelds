@@ -18,6 +18,8 @@ public final class AudioOutput implements AutoCloseable {
     private static final int BUFFER_COUNT = 4;
     /** Each OpenAL buffer holds about 1/32 s, so four queued buffers cover about 125 ms of hiccups. */
     private static final int CHUNKS_PER_SECOND = 32;
+    /** Pumps between health reports (about 10 s at 60 pumps per second). */
+    private static final int HEALTH_INTERVAL = 600;
 
     private final AudioRingBuffer ring;
     private final int sampleRate;
@@ -31,6 +33,9 @@ public final class AudioOutput implements AutoCloseable {
     private final int maxRingBacklog;
     private int freeCount;
     private boolean broken;
+    private long pumps;
+    private long underruns;
+    private long droppedSamples;
 
     private AudioOutput(AudioRingBuffer ring, int sampleRate, long context) {
         this.ring = ring;
@@ -80,12 +85,16 @@ public final class AudioOutput implements AutoCloseable {
                 RetroHandhelds.LOGGER.warn("Retro Handhelds: OpenAL context changed, emulator sound stopped");
                 return;
             }
+            if (++pumps % HEALTH_INTERVAL == 0 && !checkHealth(gain)) {
+                return;
+            }
             alSourcef(source, AL_GAIN, gain);
             for (int processed = alGetSourcei(source, AL_BUFFERS_PROCESSED); processed > 0; processed--) {
                 freeBuffers[freeCount++] = alSourceUnqueueBuffers(source);
             }
             int backlog = ring.available() - maxRingBacklog;
             if (backlog > 0) {
+                droppedSamples += backlog;
                 ring.skip(backlog);
             }
             while (freeCount > 0 && ring.available() >= chunkSamples) {
@@ -96,12 +105,32 @@ public final class AudioOutput implements AutoCloseable {
             }
             // Also restarts the source after an underrun, once there is a little audio queued again.
             if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING && alGetSourcei(source, AL_BUFFERS_QUEUED) >= 2) {
+                // The first start is not an underrun; any later restart is.
+                if (pumps > 1 && ++underruns % 50 == 1) {
+                    RetroHandhelds.LOGGER.warn("Retro Handhelds: audio underrun #{}, restarting playback", underruns);
+                }
                 alSourcePlay(source);
             }
         } catch (Throwable t) {
             broken = true;
             RetroHandhelds.LOGGER.error("Retro Handhelds: audio output failed, emulator sound stopped", t);
         }
+    }
+
+    /**
+     * Logs a debug summary, and gives up loudly if our source no longer exists: in that case every
+     * AL call on it fails without throwing, which would otherwise mean silence with nothing in the log.
+     */
+    private boolean checkHealth(float gain) {
+        if (!alIsSource(source)) {
+            broken = true;
+            RetroHandhelds.LOGGER.warn("Retro Handhelds: OpenAL source {} was deleted outside the mod, emulator sound stopped", source);
+            return false;
+        }
+        RetroHandhelds.LOGGER.debug("Retro Handhelds audio: state={} queued={} ring={} gain={} underruns={} droppedMs={}",
+                alGetSourcei(source, AL_SOURCE_STATE), alGetSourcei(source, AL_BUFFERS_QUEUED), ring.available(),
+                gain, underruns, droppedSamples * 1000 / 2 / sampleRate);
+        return true;
     }
 
     @Override
