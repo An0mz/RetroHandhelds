@@ -34,6 +34,7 @@ public final class AudioOutput implements AutoCloseable {
     private int freeCount;
     private boolean broken;
     private long pumps;
+    private boolean started;
     private long underruns;
     private long droppedSamples;
 
@@ -106,10 +107,11 @@ public final class AudioOutput implements AutoCloseable {
             // Also restarts the source after an underrun, once there is a little audio queued again.
             if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING && alGetSourcei(source, AL_BUFFERS_QUEUED) >= 2) {
                 // The first start is not an underrun; any later restart is.
-                if (pumps > 1 && ++underruns % 50 == 1) {
+                if (started && ++underruns % 50 == 1) {
                     RetroHandhelds.LOGGER.warn("Retro Handhelds: audio underrun #{}, restarting playback", underruns);
                 }
                 alSourcePlay(source);
+                started = true;
             }
         } catch (Throwable t) {
             broken = true;
