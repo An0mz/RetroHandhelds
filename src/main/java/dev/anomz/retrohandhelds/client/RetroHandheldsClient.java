@@ -8,6 +8,7 @@ import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
+import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.item.CartridgeData;
@@ -46,6 +47,7 @@ public final class RetroHandheldsClient {
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickItem);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onShutdown);
+        NeoForge.EVENT_BUS.addListener(HandheldInHandRenderer::onRenderHand);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

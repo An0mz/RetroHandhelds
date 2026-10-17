@@ -76,11 +76,18 @@ public final class ConsoleSessions {
         session.ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, false)));
     }
 
-    /** Right-click with a handheld: plays its cartridge until the screen closes. */
+    /**
+     * Right-click with a handheld: resume its running game or start one, then open the screen.
+     * Closing the screen keeps it running while the handheld stays in the player's inventory.
+     */
     public static void powerOnHandheld(CartridgeData cartridge) {
         Minecraft minecraft = Minecraft.getInstance();
-        start(cartridge.romFile(), null, cartridge, true, message -> minecraft.player.displayClientMessage(message, true))
-                .ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, true)));
+        Active current = active;
+        Optional<Active> session = current != null && current.handheld()
+                && cartridge.equals(current.cartridge()) && current.isRunning()
+                ? Optional.of(current)
+                : start(cartridge.romFile(), null, cartridge, true, message -> minecraft.player.displayClientMessage(message, true));
+        session.ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, false)));
     }
 
     private static Optional<Active> start(String romFile, @Nullable BlockPos pos, @Nullable CartridgeData cartridge,
@@ -154,6 +161,14 @@ public final class ConsoleSessions {
         return muted
                 ? Component.translatable("message.retrohandhelds.muted")
                 : Component.translatable("message.retrohandhelds.volume", volumeLevel * 100 / VOLUME_STEPS);
+    }
+
+    /** The display of the handheld playing {@code cartridge}, if it is the one running. */
+    @Nullable
+    public static SessionDisplay displayForHandheld(@Nullable CartridgeData cartridge) {
+        Active current = active;
+        return current != null && current.handheld() && cartridge != null && cartridge.equals(current.cartridge())
+                ? current.display() : null;
     }
 
     @Nullable
