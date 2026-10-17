@@ -45,27 +45,39 @@ public final class NativeLoader {
     }
 
     private static MgbaCore tryLoad() {
+        try {
+            Path nativesDir = RetroPaths.natives();
+            MgbaCore core = loadInto(nativesDir);
+            RetroHandhelds.LOGGER.info("Loaded mGBA core (libretro API {}) into {}", core.retro_api_version(), nativesDir);
+            return core;
+        } catch (Throwable t) {
+            RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the native mGBA core", t);
+            return null;
+        }
+    }
+
+    /**
+     * Extracts this platform's core from the jar into {@code nativesDir/<os>-<arch>/} and loads it.
+     * Public so tests can check the bundled cores on every platform without Minecraft.
+     *
+     * @throws UnsupportedOperationException if no core is bundled for this OS/architecture
+     * @throws IOException if the core is missing from the jar or cannot be written
+     */
+    public static MgbaCore loadInto(Path nativesDir) throws IOException {
         String os = osKey();
         String arch = archKey();
         if (os == null || arch == null) {
-            RetroHandhelds.LOGGER.error("Retro Handhelds has no mGBA core for this platform ({} / {})",
-                    System.getProperty("os.name"), System.getProperty("os.arch"));
-            return null;
+            throw new UnsupportedOperationException("No mGBA core for this platform ("
+                    + System.getProperty("os.name") + " / " + System.getProperty("os.arch") + ")");
         }
         String platform = os + "-" + arch;
         String resource = "/natives/" + platform + "/" + libraryFileName(os);
         try (InputStream in = NativeLoader.class.getResourceAsStream(resource)) {
             if (in == null) {
-                RetroHandhelds.LOGGER.error("Retro Handhelds: native core {} is missing from the mod jar", resource);
-                return null;
+                throw new IOException("Native core " + resource + " is missing from the mod jar");
             }
-            Path target = extract(in.readAllBytes(), RetroPaths.natives().resolve(platform).resolve(libraryFileName(os)));
-            MgbaCore core = Native.load(target.toAbsolutePath().toString(), MgbaCore.class);
-            RetroHandhelds.LOGGER.info("Loaded mGBA core (libretro API {}) from {}", core.retro_api_version(), target);
-            return core;
-        } catch (Throwable t) {
-            RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load native core {}", resource, t);
-            return null;
+            Path target = extract(in.readAllBytes(), nativesDir.resolve(platform).resolve(libraryFileName(os)));
+            return Native.load(target.toAbsolutePath().toString(), MgbaCore.class);
         }
     }
 
