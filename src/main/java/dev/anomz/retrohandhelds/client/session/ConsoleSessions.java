@@ -22,7 +22,6 @@ import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
@@ -187,8 +186,8 @@ public final class ConsoleSessions {
             stop();
             return;
         }
-        // Multiplayer worlds never pause, but the pause menu still pauses the player's own game.
-        current.session().setPaused(minecraft.isPaused() || minecraft.screen instanceof PauseScreen);
+        // Follow Minecraft: singleplayer pauses, while servers and LAN worlds keep running, so the game does too.
+        current.session().setPaused(minecraft.isPaused());
         float volume = minecraft.options.getSoundSourceVolume(SoundSource.RECORDS);
         if (current.handheld() && !minecraft.player.getInventory().contains(
                 stack -> stack.is(RetroRegistries.HANDHELD) && Objects.equals(HandheldItem.cartridgeData(stack), current.cartridge()))) {
