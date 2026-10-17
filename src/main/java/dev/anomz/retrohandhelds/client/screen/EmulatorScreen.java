@@ -4,49 +4,41 @@ import java.util.List;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.mojang.blaze3d.platform.NativeImage;
-
-import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RomNames;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
+import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundSource;
 
-/** Full-screen view of a running session. Closing the screen stops the session. */
+/**
+ * Full-screen view of a running session, with keyboard input. A console's session keeps running
+ * on the block after this closes; a standalone one (play command) is stopped.
+ */
 public final class EmulatorScreen extends Screen {
-    private static final ResourceLocation TEXTURE_ID = ResourceLocation.fromNamespaceAndPath(RetroHandhelds.MODID, "dynamic/emulator_screen");
     private static final int W = FrameBuffer.WIDTH;
     private static final int H = FrameBuffer.HEIGHT;
     private static final long HINT_VISIBLE_MS = 5000;
     private static final long HINT_FADE_MS = 1000;
 
+    private final ConsoleSessions.Active active;
     private final EmulatorSession session;
-    private final int[] pixels = new int[FrameBuffer.PIXELS];
-    private DynamicTexture texture;
-    private long lastFrame;
+    private final boolean stopOnClose;
+    private final long openedAtMs = Util.getMillis();
     private List<Component> hintLines = List.of();
-    private long openedAtMs = -1;
 
-    public EmulatorScreen(EmulatorSession session, String romName) {
-        super(Component.literal(romName));
-        this.session = session;
+    public EmulatorScreen(ConsoleSessions.Active active, boolean stopOnClose) {
+        super(Component.literal(RomNames.displayName(active.romFile())));
+        this.active = active;
+        this.session = active.session();
+        this.stopOnClose = stopOnClose;
     }
 
     @Override
     protected void init() {
-        updateVolume();
-        // init() runs again on every resize; the texture only needs creating once.
-        if (texture == null) {
-            texture = new DynamicTexture(W, H, true);
-            minecraft.getTextureManager().register(TEXTURE_ID, texture);
-            openedAtMs = Util.getMillis();
-        }
         // Built here, not per frame; bindings cannot change while this screen is open.
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
@@ -67,26 +59,20 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void tick() {
-        updateVolume();
         // Key releases are lost while the window is unfocused, so drop everything instead of sticking.
         if (!minecraft.isWindowActive()) {
             session.joypad().clear();
         }
     }
 
-    // Follows the Jukebox/Note Blocks slider; Minecraft's listener already applies Master.
-    private void updateVolume() {
-        session.setVolume(minecraft.options.getSoundSourceVolume(SoundSource.RECORDS));
-    }
-
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        uploadLatestFrame();
+        active.display().update();
         graphics.fill(0, 0, width, height, 0xFF000000);
         float scale = Math.min(width / (float) W, height / (float) H);
         int w = (int) (W * scale);
         int h = (int) (H * scale);
-        graphics.blit(TEXTURE_ID, (width - w) / 2, (height - h) / 2, w, h, 0, 0, W, H, W, H);
+        graphics.blit(active.display().textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, W, H, W, H);
 
         renderHint(graphics);
 
@@ -113,21 +99,6 @@ public final class EmulatorScreen extends Screen {
         for (int i = 0; i < hintLines.size(); i++) {
             graphics.drawCenteredString(font, hintLines.get(i), width / 2, top + i * lineHeight, alpha << 24 | 0xFFFFFF);
         }
-    }
-
-    private void uploadLatestFrame() {
-        long frame = session.frames().copyIfNewer(pixels, lastFrame);
-        if (frame == lastFrame) {
-            return;
-        }
-        lastFrame = frame;
-        NativeImage image = texture.getPixels();
-        for (int y = 0; y < H; y++) {
-            for (int x = 0; x < W; x++) {
-                image.setPixelRGBA(x, y, pixels[y * W + x]);
-            }
-        }
-        texture.upload();
     }
 
     @Override
@@ -182,10 +153,9 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void removed() {
-        session.stop();
-        if (texture != null) {
-            minecraft.getTextureManager().release(TEXTURE_ID);
-            texture = null;
+        session.joypad().clear();
+        if (stopOnClose) {
+            ConsoleSessions.stop(active);
         }
     }
 }

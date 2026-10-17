@@ -9,5 +9,15 @@
   "key.retrohandhelds.l": "L Button",
   "key.retrohandhelds.r": "R Button",
   "key.retrohandhelds.start": "Start",
-  "key.retrohandhelds.select": "Select"
+  "key.retrohandhelds.select": "Select",
+  "block.retrohandhelds.console": "Retro Console",
+  "item.retrohandhelds.cartridge": "Blank Cartridge",
+  "item.retrohandhelds.cartridge.named": "Cartridge: %s",
+  "item.retrohandhelds.cartridge.blank": "Right-click to choose a ROM",
+  "screen.retrohandhelds.rom_picker": "Choose a ROM",
+  "screen.retrohandhelds.rom_picker.empty": "No ROMs found. Put your .gba files in:",
+  "message.retrohandhelds.no_cartridge": "Insert a cartridge first",
+  "message.retrohandhelds.rom_missing": "You don't have %s in your ROM folder",
+  "message.retrohandhelds.core_missing": "The emulator core could not be loaded. See the game log.",
+  "message.retrohandhelds.busy": "Another emulator session is already running"
 }

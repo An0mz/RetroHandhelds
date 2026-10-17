@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "retrohandhelds:block/console" },
+    "facing=east": { "model": "retrohandhelds:block/console", "y": 90 },
+    "facing=south": { "model": "retrohandhelds:block/console", "y": 180 },
+    "facing=west": { "model": "retrohandhelds:block/console", "y": 270 }
+  }
+}

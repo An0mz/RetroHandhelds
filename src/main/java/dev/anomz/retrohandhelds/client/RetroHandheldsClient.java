@@ -1,16 +1,30 @@
 package dev.anomz.retrohandhelds.client;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroRegistries;
+import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
+import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
+import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
+import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import dev.anomz.retrohandhelds.item.CartridgeData;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 /**
  * Client entry point. Only constructed on the physical client, so every class under
@@ -21,7 +35,12 @@ public final class RetroHandheldsClient {
     public RetroHandheldsClient(IEventBus modEventBus) {
         modEventBus.addListener(RetroHandheldsClient::onClientSetup);
         modEventBus.addListener(JoypadButton::registerAll);
+        modEventBus.addListener(RetroHandheldsClient::onRegisterRenderers);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRegisterClientCommands);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onLoggingOut);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickBlock);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickItem);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onShutdown);
     }
 
@@ -29,8 +48,42 @@ public final class RetroHandheldsClient {
         RetroPaths.roms();
     }
 
+    private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(RetroRegistries.CONSOLE_BLOCK_ENTITY.get(), ConsoleRenderer::new);
+    }
+
     private static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
         RetroHandheldsCommand.register(event.getDispatcher());
+    }
+
+    private static void onClientTick(ClientTickEvent.Post event) {
+        ConsoleSessions.tick(Minecraft.getInstance());
+    }
+
+    private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ConsoleSessions.stop();
+    }
+
+    /** Empty hand on a console powers it on. Inserting and ejecting are handled by the block on the server. */
+    private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        Player player = event.getEntity();
+        if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || !player.getMainHandItem().isEmpty() || player.isShiftKeyDown()
+                || !(event.getLevel().getBlockEntity(event.getPos()) instanceof ConsoleBlockEntity console)) {
+            return;
+        }
+        CartridgeData cartridge = console.cartridgeData();
+        if (cartridge == null) {
+            player.displayClientMessage(Component.translatable("message.retrohandhelds.no_cartridge"), true);
+            return;
+        }
+        ConsoleSessions.powerOn(event.getPos(), cartridge);
+    }
+
+    private static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (event.getLevel().isClientSide() && event.getItemStack().is(RetroRegistries.CARTRIDGE)) {
+            Minecraft.getInstance().setScreen(new RomPickerScreen(event.getHand()));
+        }
     }
 
     private static void onShutdown(GameShuttingDownEvent event) {

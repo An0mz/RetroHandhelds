@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:paper" }
+  ],
+  "result": { "id": "retrohandhelds:cartridge", "count": 1 }
+}
