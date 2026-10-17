@@ -37,6 +37,9 @@ final class CoreCallbacks {
     private final short[] audioPair = new short[2];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
     private int polledButtons;
+    /** Keep 1 of every N audio frames while fast-forwarding, so sound plays sped up instead of piling up. */
+    private int audioDecimation = 1;
+    private int decimationPhase;
     private boolean errorLogged;
 
     CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, CoreOptions options,
@@ -135,7 +138,7 @@ final class CoreCallbacks {
                 for (long done = 0; done < total; ) {
                     int n = (int) Math.min(total - done, audioScratch.length);
                     data.read(done * Short.BYTES, audioScratch, 0, n);
-                    audio.write(audioScratch, n);
+                    audio.write(audioScratch, decimate(n));
                     done += n;
                 }
             }
@@ -143,6 +146,27 @@ final class CoreCallbacks {
             logOnce("audio batch", t);
         }
         return frameCount;
+    }
+
+    /** Emulator thread only, between frames. */
+    void setAudioDecimation(int decimation) {
+        audioDecimation = decimation;
+    }
+
+    /** Compacts {@code audioScratch} in place to every Nth stereo frame; returns the new sample count. */
+    private int decimate(int samples) {
+        if (audioDecimation <= 1) {
+            return samples;
+        }
+        int out = 0;
+        for (int i = 0; i + 1 < samples; i += 2) {
+            if (decimationPhase == 0) {
+                audioScratch[out++] = audioScratch[i];
+                audioScratch[out++] = audioScratch[i + 1];
+            }
+            decimationPhase = (decimationPhase + 1) % audioDecimation;
+        }
+        return out;
     }
 
     private void audioSample(short left, short right) {

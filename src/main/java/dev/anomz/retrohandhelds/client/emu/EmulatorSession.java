@@ -55,6 +55,7 @@ public final class EmulatorSession {
     private volatile String failure;
     private volatile float volume = 1f;
     private volatile boolean paused;
+    private volatile int speed = 1;
     /** Set once the emulator thread can no longer answer state requests. */
     private volatile boolean finished;
     // Kept as fields so the ROM memory stays reachable while the core may still read it.
@@ -117,6 +118,15 @@ public final class EmulatorSession {
 
     public FrameBuffer frames() {
         return frames;
+    }
+
+    /** Frames emulated per real frame: 1 is normal, 2-4 fast-forwards. Safe to call from any thread. */
+    public void setSpeed(int speed) {
+        this.speed = Math.clamp(speed, 1, 4);
+    }
+
+    public int speed() {
+        return speed;
     }
 
     /** Freezes emulation and sound while true (Minecraft paused). Safe to call from any thread. */
@@ -248,7 +258,11 @@ public final class EmulatorSession {
             if (audioOutput != null) {
                 audioOutput.setPaused(false);
             }
-            core.retro_run();
+            int frames = speed;
+            callbacks.setAudioDecimation(frames);
+            for (int i = 0; i < frames; i++) {
+                core.retro_run();
+            }
             if (audioOutput != null) {
                 audioOutput.pump(volume);
             }

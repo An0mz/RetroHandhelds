@@ -22,6 +22,10 @@ public final class RetroClientConfig {
             .comment("Blend each frame with the previous one, like the slow LCD of the original hardware.")
             .define("lcdGhosting", false);
 
+    private static final ModConfigSpec.IntValue FAST_FORWARD_SPEED = BUILDER
+            .comment("How fast the game runs while the Fast-Forward key is held (2-4x).")
+            .defineInRange("fastForwardSpeed", 2, 2, 4);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private RetroClientConfig() {
@@ -41,6 +45,10 @@ public final class RetroClientConfig {
 
     public static boolean lcdGhosting() {
         return SPEC.isLoaded() && LCD_GHOSTING.get();
+    }
+
+    public static int fastForwardSpeed() {
+        return SPEC.isLoaded() ? FAST_FORWARD_SPEED.get() : 2;
     }
 
     public static void setVolume(int volume) {

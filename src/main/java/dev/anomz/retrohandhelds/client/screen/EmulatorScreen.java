@@ -5,6 +5,7 @@ import java.util.List;
 import org.lwjgl.glfw.GLFW;
 
 import dev.anomz.retrohandhelds.RomNames;
+import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.emu.StateResult;
@@ -60,7 +61,8 @@ public final class EmulatorScreen extends Screen {
                 Component.empty()
                         .append("Mute: ").append(EmulatorKeys.MUTE.getTranslatedKeyMessage())
                         .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
-                        .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage()));
+                        .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage())
+                        .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)"));
     }
 
     private static Component hint(JoypadButton... buttons) {
@@ -79,6 +81,7 @@ public final class EmulatorScreen extends Screen {
         // Key releases are lost while the window is unfocused, so drop everything instead of sticking.
         if (!minecraft.isWindowActive()) {
             session.joypad().clear();
+            session.setSpeed(1);
         }
     }
 
@@ -95,6 +98,9 @@ public final class EmulatorScreen extends Screen {
         graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
 
         renderHint(graphics);
+        if (session.speed() > 1) {
+            graphics.drawString(font, Component.translatable("screen.retrohandhelds.fast_forward", session.speed()), 6, 8, 0xFFFFFFFF);
+        }
         if (status != null && Util.getMillis() - statusAtMs < STATUS_VISIBLE_MS) {
             graphics.drawCenteredString(font, status, width / 2, 8, 0xFFFFFFFF);
         }
@@ -147,6 +153,10 @@ public final class EmulatorScreen extends Screen {
             session.loadState().thenAccept(this::showStateResult);
             return true;
         }
+        if (matches(EmulatorKeys.FAST_FORWARD, keyCode, scanCode)) {
+            session.setSpeed(RetroClientConfig.fastForwardSpeed());
+            return true;
+        }
         if (matches(EmulatorKeys.MUTE, keyCode, scanCode)) {
             showStatus(ConsoleSessions.toggleMute());
             return true;
@@ -167,6 +177,10 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (matches(EmulatorKeys.FAST_FORWARD, keyCode, scanCode)) {
+            session.setSpeed(1);
+            return true;
+        }
         return setButtons(keyCode, scanCode, false) || super.keyReleased(keyCode, scanCode, modifiers);
     }
 
@@ -235,6 +249,7 @@ public final class EmulatorScreen extends Screen {
     @Override
     public void removed() {
         session.joypad().clear();
+        session.setSpeed(1);
         if (stopOnClose) {
             ConsoleSessions.stop(active);
         }

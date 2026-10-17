@@ -48,5 +48,8 @@
   "retrohandhelds.configuration.volume": "Volume (0-10)",
   "retrohandhelds.configuration.muted": "Muted",
   "retrohandhelds.configuration.colorCorrection": "GBA Color Correction",
-  "retrohandhelds.configuration.lcdGhosting": "LCD Ghosting"
+  "retrohandhelds.configuration.lcdGhosting": "LCD Ghosting",
+  "key.retrohandhelds.fast_forward": "Fast-Forward (hold)",
+  "screen.retrohandhelds.fast_forward": ">> %sx",
+  "retrohandhelds.configuration.fastForwardSpeed": "Fast-Forward Speed (2-4x)"
 }

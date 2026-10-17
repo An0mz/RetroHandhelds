@@ -19,6 +19,8 @@ public final class EmulatorKeys {
             KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F5, JoypadButton.CATEGORY);
     public static final KeyMapping LOAD_STATE = new KeyMapping("key.retrohandhelds.load_state",
             KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F9, JoypadButton.CATEGORY);
+    public static final KeyMapping FAST_FORWARD = new KeyMapping("key.retrohandhelds.fast_forward",
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_TAB, JoypadButton.CATEGORY);
     public static final KeyMapping MUTE = new KeyMapping("key.retrohandhelds.mute",
             KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_M, JoypadButton.CATEGORY);
     public static final KeyMapping VOLUME_DOWN = new KeyMapping("key.retrohandhelds.volume_down",
@@ -32,6 +34,7 @@ public final class EmulatorKeys {
     public static void registerAll(RegisterKeyMappingsEvent event) {
         event.register(SAVE_STATE);
         event.register(LOAD_STATE);
+        event.register(FAST_FORWARD);
         event.register(MUTE);
         event.register(VOLUME_DOWN);
         event.register(VOLUME_UP);
