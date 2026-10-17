@@ -193,9 +193,9 @@ publishing {
     }
 }
 
-// Ship the mod's license, and mGBA's next to the bundled natives.
+// Ship the mod's license, and the bundled cores' licenses next to their natives.
 tasks.named('jar', Jar) {
-    from('LICENSE', 'LICENSE-mGBA.txt')
+    from('LICENSE', 'LICENSE-mGBA.txt', 'LICENSE-PCSX-ReARMed.txt')
 }
 
 tasks.named('test', Test) {

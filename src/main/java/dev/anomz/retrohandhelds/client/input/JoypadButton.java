@@ -26,6 +26,11 @@ public enum JoypadButton {
     B("b", "B", DEVICE_ID_JOYPAD_B, GLFW.GLFW_KEY_Z),
     L("l", "L", DEVICE_ID_JOYPAD_L, GLFW.GLFW_KEY_A),
     R("r", "R", DEVICE_ID_JOYPAD_R, GLFW.GLFW_KEY_S),
+    // Only disc games use these four.
+    X("x", "X", DEVICE_ID_JOYPAD_X, GLFW.GLFW_KEY_D),
+    Y("y", "Y", DEVICE_ID_JOYPAD_Y, GLFW.GLFW_KEY_C),
+    L2("l2", "L2", DEVICE_ID_JOYPAD_L2, GLFW.GLFW_KEY_Q),
+    R2("r2", "R2", DEVICE_ID_JOYPAD_R2, GLFW.GLFW_KEY_W),
     START("start", "Start", DEVICE_ID_JOYPAD_START, GLFW.GLFW_KEY_ENTER),
     SELECT("select", "Select", DEVICE_ID_JOYPAD_SELECT, GLFW.GLFW_KEY_BACKSPACE);
 

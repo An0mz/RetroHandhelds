@@ -28,23 +28,26 @@ final class DebugFrameTest {
     /** Runs off the render thread so stopping the session never blocks a frame. */
     private static void finish(EmulatorSession session) {
         session.stop();
-        int[] pixels = new int[FrameBuffer.PIXELS];
-        long frameCount = session.frames().copyLatest(pixels);
+        FrameBuffer frames = session.frames();
+        int[] pixels = new int[frames.capacity()];
+        int[] size = new int[2];
+        long frameCount = frames.copyLatest(pixels, size);
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.execute(() -> writeFrame(minecraft, session, pixels, frameCount));
+        minecraft.execute(() -> writeFrame(minecraft, session, pixels, frames.stride(), size, frameCount));
     }
 
-    private static void writeFrame(Minecraft minecraft, EmulatorSession session, int[] pixels, long frameCount) {
+    private static void writeFrame(Minecraft minecraft, EmulatorSession session, int[] pixels, int stride, int[] size,
+            long frameCount) {
         if (frameCount == 0) {
             String reason = session.failure() != null ? session.failure() : "the core produced no video";
             chat(minecraft, "Test failed: " + reason);
             return;
         }
         Path out = RetroPaths.debugFrame();
-        try (NativeImage image = new NativeImage(FrameBuffer.WIDTH, FrameBuffer.HEIGHT, false)) {
-            for (int y = 0; y < FrameBuffer.HEIGHT; y++) {
-                for (int x = 0; x < FrameBuffer.WIDTH; x++) {
-                    image.setPixelRGBA(x, y, pixels[y * FrameBuffer.WIDTH + x]);
+        try (NativeImage image = new NativeImage(size[0], size[1], false)) {
+            for (int y = 0; y < size[1]; y++) {
+                for (int x = 0; x < size[0]; x++) {
+                    image.setPixelRGBA(x, y, pixels[y * stride + x]);
                 }
             }
             image.writeToFile(out);

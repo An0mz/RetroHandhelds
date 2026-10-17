@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import com.sun.jna.Native;
@@ -15,43 +17,49 @@ import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 
 /**
- * Extracts the mGBA core for this OS/arch from {@code /natives/<os>-<arch>/} in the mod jar into
+ * Extracts a core for this OS/arch from {@code /natives/<os>-<arch>/} in the mod jar into
  * {@code retro_handhelds/natives/} and loads it. Any failure is logged and reported as empty.
  */
 public final class NativeLoader {
-    private static Optional<MgbaCore> cached;
+    private static final Map<CoreKind, Optional<LibretroCore>> CACHED = new EnumMap<>(CoreKind.class);
 
     private NativeLoader() {
     }
 
-    public static synchronized Optional<MgbaCore> load() {
+    public static synchronized Optional<LibretroCore> load(CoreKind kind) {
+        Optional<LibretroCore> cached = CACHED.get(kind);
         if (cached == null) {
             long start = System.nanoTime();
-            cached = Optional.ofNullable(tryLoad());
-            RetroHandhelds.LOGGER.info("Retro Handhelds: native core load took {} ms", (System.nanoTime() - start) / 1_000_000);
+            cached = Optional.ofNullable(tryLoad(kind));
+            CACHED.put(kind, cached);
+            RetroHandhelds.LOGGER.info("Retro Handhelds: {} load took {} ms", kind.library(), (System.nanoTime() - start) / 1_000_000);
         }
         return cached;
     }
 
     /**
-     * Loads the core on a background thread during startup. Reading the library from the jar and
+     * Loads the cores on a background thread during startup. Reading a library from the jar and
      * loading it takes long enough to freeze the game for a moment if it first happens on a click.
      * A click while this is still running simply waits for it ({@link #load} is synchronized).
      */
     public static void preloadAsync() {
-        Thread thread = new Thread(NativeLoader::load, "RetroHandhelds-CoreLoader");
+        Thread thread = new Thread(() -> {
+            for (CoreKind kind : CoreKind.values()) {
+                load(kind);
+            }
+        }, "RetroHandhelds-CoreLoader");
         thread.setDaemon(true);
         thread.start();
     }
 
-    private static MgbaCore tryLoad() {
+    private static LibretroCore tryLoad(CoreKind kind) {
         try {
             Path nativesDir = RetroPaths.natives();
-            MgbaCore core = loadInto(nativesDir);
-            RetroHandhelds.LOGGER.info("Loaded mGBA core (libretro API {}) into {}", core.retro_api_version(), nativesDir);
+            LibretroCore core = loadInto(nativesDir, kind);
+            RetroHandhelds.LOGGER.info("Loaded {} (libretro API {}) into {}", kind.library(), core.retro_api_version(), nativesDir);
             return core;
         } catch (Throwable t) {
-            RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the native mGBA core", t);
+            RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the native core {}", kind.library(), t);
             return null;
         }
     }
@@ -63,21 +71,22 @@ public final class NativeLoader {
      * @throws UnsupportedOperationException if no core is bundled for this OS/architecture
      * @throws IOException if the core is missing from the jar or cannot be written
      */
-    public static MgbaCore loadInto(Path nativesDir) throws IOException {
+    public static LibretroCore loadInto(Path nativesDir, CoreKind kind) throws IOException {
         String os = osKey();
         String arch = archKey();
         if (os == null || arch == null) {
-            throw new UnsupportedOperationException("No mGBA core for this platform ("
+            throw new UnsupportedOperationException("No " + kind.library() + " for this platform ("
                     + System.getProperty("os.name") + " / " + System.getProperty("os.arch") + ")");
         }
         String platform = os + "-" + arch;
-        String resource = "/natives/" + platform + "/" + libraryFileName(os);
+        String fileName = kind.library() + librarySuffix(os);
+        String resource = "/natives/" + platform + "/" + fileName;
         try (InputStream in = NativeLoader.class.getResourceAsStream(resource)) {
             if (in == null) {
                 throw new IOException("Native core " + resource + " is missing from the mod jar");
             }
-            Path target = extract(in.readAllBytes(), nativesDir.resolve(platform).resolve(libraryFileName(os)));
-            return Native.load(target.toAbsolutePath().toString(), MgbaCore.class);
+            Path target = extract(in.readAllBytes(), nativesDir.resolve(platform).resolve(fileName));
+            return Native.load(target.toAbsolutePath().toString(), LibretroCore.class);
         }
     }
 
@@ -112,11 +121,11 @@ public final class NativeLoader {
         };
     }
 
-    private static String libraryFileName(String os) {
+    private static String librarySuffix(String os) {
         return switch (os) {
-            case "windows" -> "mgba_libretro.dll";
-            case "macos" -> "mgba_libretro.dylib";
-            default -> "mgba_libretro.so";
+            case "windows" -> ".dll";
+            case "macos" -> ".dylib";
+            default -> ".so";
         };
     }
 }

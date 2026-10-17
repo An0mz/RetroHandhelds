@@ -31,6 +31,41 @@ public final class ScreenStrips {
         return width > 0 && width <= MAX_WIDTH && height > 0 && height <= MAX_HEIGHT;
     }
 
+    /**
+     * Fits a frame into the shareable size: pictures that already fit (GBA, Game Boy) are copied
+     * as they are; bigger ones (PS1, Super Game Boy borders) are scaled down to at most
+     * {@link #MAX_WIDTH} x {@link #MAX_HEIGHT} with their display aspect ratio, so receivers can
+     * draw them with square pixels.
+     *
+     * @param src picture in the top-left {@code width x height}, rows {@code srcStride} long
+     * @param aspect how wide the picture should look for its height
+     * @param dst rows {@link #MAX_WIDTH} long
+     * @param sizeOut receives the shared width and height
+     */
+    public static void fit(int[] src, int srcStride, int width, int height, float aspect, int[] dst, int[] sizeOut) {
+        int outW;
+        int outH;
+        if (width <= MAX_WIDTH && height <= MAX_HEIGHT && Math.abs(width / (float) height - aspect) < 0.01f) {
+            outW = width;
+            outH = height;
+        } else if (aspect >= MAX_WIDTH / (float) MAX_HEIGHT) {
+            outW = MAX_WIDTH;
+            outH = Math.clamp(Math.round(MAX_WIDTH / aspect), 1, MAX_HEIGHT);
+        } else {
+            outH = MAX_HEIGHT;
+            outW = Math.clamp(Math.round(MAX_HEIGHT * aspect), 1, MAX_WIDTH);
+        }
+        for (int y = 0; y < outH; y++) {
+            int srcRow = (int) ((long) y * height / outH) * srcStride;
+            int dstRow = y * MAX_WIDTH;
+            for (int x = 0; x < outW; x++) {
+                dst[dstRow + x] = src[srcRow + (int) ((long) x * width / outW)];
+            }
+        }
+        sizeOut[0] = outW;
+        sizeOut[1] = outH;
+    }
+
     @FunctionalInterface
     public interface StripSink {
         /** {@code data} is a fresh array the sink may keep. */

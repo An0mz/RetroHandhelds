@@ -61,6 +61,33 @@ class GamepadMappingTest {
     }
 
     @Test
+    void discLayoutUsesPositionsForAllFaceButtons() {
+        byte[] buttons = new byte[GLFW_GAMEPAD_BUTTON_LAST + 1];
+        float[] axes = new float[GLFW_GAMEPAD_AXIS_LAST + 1];
+        axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = -1;
+        axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1;
+        buttons[GLFW_GAMEPAD_BUTTON_A] = GLFW_PRESS;
+        buttons[GLFW_GAMEPAD_BUTTON_B] = GLFW_PRESS;
+        buttons[GLFW_GAMEPAD_BUTTON_X] = GLFW_PRESS;
+        buttons[GLFW_GAMEPAD_BUTTON_Y] = GLFW_PRESS;
+        assertEquals(bits(DEVICE_ID_JOYPAD_B, DEVICE_ID_JOYPAD_A, DEVICE_ID_JOYPAD_Y, DEVICE_ID_JOYPAD_X),
+                GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true));
+    }
+
+    @Test
+    void discLayoutTriggersAreL2AndR2() {
+        byte[] buttons = new byte[GLFW_GAMEPAD_BUTTON_LAST + 1];
+        float[] axes = new float[GLFW_GAMEPAD_AXIS_LAST + 1];
+        axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = 1;
+        axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = 1;
+        assertEquals(bits(DEVICE_ID_JOYPAD_L2, DEVICE_ID_JOYPAD_R2),
+                GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true));
+        buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] = GLFW_PRESS;
+        assertEquals(bits(DEVICE_ID_JOYPAD_L, DEVICE_ID_JOYPAD_L2, DEVICE_ID_JOYPAD_R2),
+                GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true));
+    }
+
+    @Test
     void startAndSelect() {
         assertEquals(bits(DEVICE_ID_JOYPAD_START, DEVICE_ID_JOYPAD_SELECT),
                 map(GLFW_GAMEPAD_BUTTON_START, GLFW_GAMEPAD_BUTTON_BACK));

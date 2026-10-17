@@ -7,9 +7,9 @@ import org.lwjgl.glfw.GLFW;
 import dev.anomz.retrohandhelds.RomNames;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
-import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.emu.StateResult;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
+import dev.anomz.retrohandhelds.client.libretro.CoreKind;
 import dev.anomz.retrohandhelds.client.input.GamepadInput;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
@@ -26,8 +26,6 @@ import net.minecraft.network.chat.Component;
  * on the block after this closes; a standalone one (play command) is stopped.
  */
 public final class EmulatorScreen extends Screen {
-    private static final int W = FrameBuffer.WIDTH;
-    private static final int H = FrameBuffer.HEIGHT;
     private static final long HINT_VISIBLE_MS = 5000;
     private static final long HINT_FADE_MS = 1000;
     private static final long STATUS_VISIBLE_MS = 2000;
@@ -61,10 +59,14 @@ public final class EmulatorScreen extends Screen {
             showStatus(Component.translatable("screen.retrohandhelds.gamepad", pad));
         }
         // Built here, not per frame; bindings cannot change while this screen is open.
+        boolean disc = session.kind() == CoreKind.PCSX;
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
-                hint(JoypadButton.A, JoypadButton.B, JoypadButton.L, JoypadButton.R),
-                hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
+                disc ? hint(JoypadButton.A, JoypadButton.B, JoypadButton.X, JoypadButton.Y)
+                        : hint(JoypadButton.A, JoypadButton.B, JoypadButton.L, JoypadButton.R),
+                disc ? hint(JoypadButton.L, JoypadButton.R, JoypadButton.L2, JoypadButton.R2, JoypadButton.START,
+                        JoypadButton.SELECT).copy().append("   Close: Esc")
+                        : hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
                 Component.empty()
                         .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
                         .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()),
@@ -99,19 +101,19 @@ public final class EmulatorScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // Polled every frame here: GLFW needs the main thread, and a 20 Hz tick would add input lag.
-        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll() : 0);
+        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll(session.kind() == CoreKind.PCSX) : 0);
         SessionDisplay display = active.display();
         display.update();
         // In-world view draws nothing here: the world renders behind this screen, showing the game on
         // the console block or the handheld in the player's hands.
         if (!inWorldView) {
             graphics.fill(0, 0, width, height, 0xFF000000);
-            int frameWidth = display.width();
-            int frameHeight = display.height();
-            float scale = Math.min(width / (float) frameWidth, height / (float) frameHeight);
-            int w = (int) (frameWidth * scale);
-            int h = (int) (frameHeight * scale);
-            graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
+            // Fit the picture's aspect ratio (not always its pixel ratio) into the window.
+            float aspect = display.aspect();
+            int h = (int) Math.min(height, width / aspect);
+            int w = (int) (h * aspect);
+            graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0,
+                    display.width(), display.height(), display.textureWidth(), display.textureHeight());
         }
 
         renderHint(graphics);

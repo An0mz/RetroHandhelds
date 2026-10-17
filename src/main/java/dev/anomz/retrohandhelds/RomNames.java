@@ -22,7 +22,17 @@ public final class RomNames {
     }
 
     public static boolean hasRomExtension(String name) {
+        return isCartridge(name) || isDisc(name);
+    }
+
+    /** GBA, Game Boy and Game Boy Color games. */
+    public static boolean isCartridge(String name) {
         return name.toLowerCase(Locale.ROOT).matches(".*\\.(gba|gbc|gb)$");
+    }
+
+    /** Disc images (PS1): plain images, cue sheets, compressed images and multi-disc playlists. */
+    public static boolean isDisc(String name) {
+        return name.toLowerCase(Locale.ROOT).matches(".*\\.(iso|cue|bin|img|chd|pbp|m3u)$");
     }
 
     /** "Some Game (USA).gba" becomes "Some Game (USA)". */

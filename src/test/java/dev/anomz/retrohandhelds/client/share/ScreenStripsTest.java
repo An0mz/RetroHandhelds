@@ -108,6 +108,44 @@ class ScreenStripsTest {
     }
 
     @Test
+    void fitKeepsPicturesThatAlreadyFit() {
+        int[] src = frame(3);
+        int[] dst = new int[W * H];
+        int[] size = new int[2];
+        ScreenStrips.fit(src, W, W, H, W / (float) H, dst, size);
+        assertArrayEquals(new int[] {W, H}, size);
+        assertArrayEquals(src, dst);
+    }
+
+    @Test
+    void fitScalesBigPicturesToTheirAspectRatio() {
+        int srcW = 640;
+        int srcH = 480;
+        int[] src = new int[srcW * srcH];
+        for (int y = 0; y < srcH; y++) {
+            for (int x = 0; x < srcW; x++) {
+                src[y * srcW + x] = x < srcW / 2 ? 0xFF0000FF : 0xFFFF0000;
+            }
+        }
+        int[] dst = new int[W * H];
+        int[] size = new int[2];
+        ScreenStrips.fit(src, srcW, srcW, srcH, 4 / 3f, dst, size);
+        assertArrayEquals(new int[] {213, H}, size, "4:3 fills the height");
+        assertEquals(0xFF0000FF, dst[0], "left half");
+        assertEquals(0xFFFF0000, dst[(H - 1) * W + 212], "right half");
+    }
+
+    @Test
+    void fitUsesTheDisplayAspectNotThePixelRatio() {
+        // PS1 256x240 is shown 4:3, so it gets wider rather than staying almost square.
+        int[] src = new int[256 * 240];
+        int[] dst = new int[W * H];
+        int[] size = new int[2];
+        ScreenStrips.fit(src, 256, 256, 240, 4 / 3f, dst, size);
+        assertArrayEquals(new int[] {213, H}, size);
+    }
+
+    @Test
     void rejectsBadInput() {
         int[] px = frame(6);
         List<Sent> sent = encode(new ScreenStrips.Encoder(), px, W, H);

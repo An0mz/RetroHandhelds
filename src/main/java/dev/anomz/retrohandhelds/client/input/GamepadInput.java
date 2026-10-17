@@ -26,7 +26,7 @@ public final class GamepadInput {
     }
 
     /** The current libretro joypad bitmask from the gamepad, or 0 if none is connected or it is disabled. */
-    public static int poll() {
+    public static int poll(boolean discLayout) {
         if (!RetroClientConfig.gamepadEnabled()) {
             return 0;
         }
@@ -51,7 +51,7 @@ public final class GamepadInput {
                 axes[i] = state.axes(i);
             }
             return GamepadMapping.toRetroMask(buttons, axes, RetroClientConfig.gamepadDeadzone(),
-                    RetroClientConfig.gamepadPositionalAB());
+                    RetroClientConfig.gamepadPositionalAB(), discLayout);
         } catch (Throwable t) {
             if (!errorLogged) {
                 errorLogged = true;

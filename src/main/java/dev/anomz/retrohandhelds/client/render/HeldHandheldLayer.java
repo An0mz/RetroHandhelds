@@ -8,7 +8,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 
 import dev.anomz.retrohandhelds.RetroRegistries;
-import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.ScreenImage;
 import dev.anomz.retrohandhelds.client.share.RemoteScreens;
@@ -94,7 +93,7 @@ public final class HeldHandheldLayer extends RenderLayer<AbstractClientPlayer, P
     /** The picture fitted into the screen pixels (Game Boy games get side bars), readable from both sides. */
     private static void drawScreen(PoseStack poseStack, MultiBufferSource buffers, ScreenImage image) {
         image.update();
-        float aspect = image.width() / (float) image.height();
+        float aspect = image.aspect();
         float areaW = SCREEN_X1 - SCREEN_X0;
         float areaH = SCREEN_Y1 - SCREEN_Y0;
         float w = Math.min(areaW, areaH * aspect);
@@ -103,8 +102,8 @@ public final class HeldHandheldLayer extends RenderLayer<AbstractClientPlayer, P
         float x1 = x0 + w;
         float y0 = (SCREEN_Y0 + SCREEN_Y1 - h) / 2;
         float y1 = y0 + h;
-        float u1 = image.width() / (float) FrameBuffer.WIDTH;
-        float v1 = image.height() / (float) FrameBuffer.HEIGHT;
+        float u1 = image.u1();
+        float v1 = image.v1();
         int light = LightTexture.FULL_BRIGHT;
         Matrix4f pose = poseStack.last().pose();
         VertexConsumer consumer = buffers.getBuffer(RenderType.text(image.textureId()));

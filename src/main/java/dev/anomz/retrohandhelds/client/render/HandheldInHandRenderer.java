@@ -8,7 +8,6 @@ import com.mojang.math.Axis;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
-import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.SessionDisplay;
 import dev.anomz.retrohandhelds.item.HandheldItem;
@@ -208,12 +207,12 @@ public final class HandheldInHandRenderer {
         float screenH = SCREEN_PX_H * UNITS_PER_PX;
         float centerX = MAP_MIN + (SCREEN_PX_X + SCREEN_PX_W / 2) * UNITS_PER_PX;
         float centerY = FACE_TOP + (SCREEN_PX_Y + SCREEN_PX_H / 2) * UNITS_PER_PX;
-        float aspect = display.width() / (float) display.height();
+        float aspect = display.aspect();
         float w = Math.min(screenW, screenH * aspect);
         float h = w / aspect;
         quad(buffers.getBuffer(RenderType.text(display.textureId())), pose,
                 centerX - w / 2, centerY - h / 2, centerX + w / 2, centerY + h / 2,
-                0, 0, display.width() / (float) FrameBuffer.WIDTH, display.height() / (float) FrameBuffer.HEIGHT,
+                0, 0, display.u1(), display.v1(),
                 SCREEN_Z, LightTexture.FULL_BRIGHT);
     }
 

@@ -174,6 +174,16 @@ public final class RemoteScreens {
         }
 
         @Override
+        public int textureWidth() {
+            return ScreenStrips.MAX_WIDTH;
+        }
+
+        @Override
+        public int textureHeight() {
+            return ScreenStrips.MAX_HEIGHT;
+        }
+
+        @Override
         public void update() {
             if (texture == null) {
                 texture = new DynamicTexture(ScreenStrips.MAX_WIDTH, ScreenStrips.MAX_HEIGHT, true);

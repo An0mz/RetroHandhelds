@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
+import dev.anomz.retrohandhelds.RomNames;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.block.TvLayout;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
@@ -17,7 +18,8 @@ import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.CoreKind;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.item.CartridgeData;
@@ -95,7 +97,12 @@ public final class ConsoleSessions {
             onError.accept(Component.translatable("message.retrohandhelds.rom_missing", romFile));
             return Optional.empty();
         }
-        Optional<MgbaCore> core = NativeLoader.load();
+        CoreKind kind = CoreKind.forRom(romFile);
+        if (kind == CoreKind.PCSX && RomLibrary.isDvdImage(rom.get())) {
+            onError.accept(Component.translatable("message.retrohandhelds.dvd_game", RomNames.displayName(romFile)));
+            return Optional.empty();
+        }
+        Optional<LibretroCore> core = NativeLoader.load(kind);
         if (core.isEmpty()) {
             onError.accept(Component.translatable("message.retrohandhelds.core_missing"));
             return Optional.empty();
@@ -109,7 +116,7 @@ public final class ConsoleSessions {
         stop();
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
+            session = EmulatorSession.start(core.get(), kind, rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
                     new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()));
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));

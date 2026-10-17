@@ -8,20 +8,20 @@ import com.sun.jna.Pointer;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.libretro.LibretroConstants;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 
 /**
  * Keeps the core's battery save RAM in sync with a {@code .sav} file. Emulator thread only.
  * The file is written only when the memory actually changed since the last write.
  */
 final class SaveRam {
-    private final MgbaCore core;
+    private final LibretroCore core;
     private final Path file;
     private byte[] current = new byte[0];
     private byte[] written = new byte[0];
     private boolean errorLogged;
 
-    SaveRam(MgbaCore core, Path file) {
+    SaveRam(LibretroCore core, Path file) {
         this.core = core;
         this.file = file;
     }

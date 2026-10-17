@@ -20,6 +20,18 @@ class SafetyChecksTest {
     }
 
     @Test
+    void romNamesAcceptDiscImages() {
+        for (String name : new String[] {"Game (USA).cue", "Game (Track 1).bin", "game.ISO", "game.chd", "game.pbp",
+                "Game (Disc 1).m3u", "game.img"}) {
+            assertTrue(RomNames.isValid(name), name);
+            assertTrue(RomNames.isDisc(name), name);
+            assertFalse(RomNames.isCartridge(name), name);
+        }
+        assertFalse(RomNames.isValid("setup.exe"));
+        assertFalse(RomNames.isDisc("game.gba"));
+    }
+
+    @Test
     void romNamesRejectPathsAndOddFiles() {
         assertFalse(RomNames.isValid(null));
         assertFalse(RomNames.isValid(""));

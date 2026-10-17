@@ -18,15 +18,33 @@ public final class GamepadMapping {
      *     east button (Xbox B) is GBA A and the south button (Xbox A) is GBA B
      */
     public static int toRetroMask(byte[] buttons, float[] axes, float deadzone, boolean positionalAB) {
+        return toRetroMask(buttons, axes, deadzone, positionalAB, false);
+    }
+
+    /**
+     * @param discLayout for disc games (PS1): all four face buttons by position (south B, east A,
+     *     west Y, north X, like the original pad) and the triggers as L2/R2 instead of L/R
+     */
+    public static int toRetroMask(byte[] buttons, float[] axes, float deadzone, boolean positionalAB,
+            boolean discLayout) {
         int mask = 0;
         boolean south = pressed(buttons, GLFW_GAMEPAD_BUTTON_A);
         boolean east = pressed(buttons, GLFW_GAMEPAD_BUTTON_B);
-        mask |= bit(positionalAB ? east : south, DEVICE_ID_JOYPAD_A);
-        mask |= bit(positionalAB ? south : east, DEVICE_ID_JOYPAD_B);
-        mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER)
-                || axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > TRIGGER_THRESHOLD, DEVICE_ID_JOYPAD_L);
-        mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER)
-                || axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > TRIGGER_THRESHOLD, DEVICE_ID_JOYPAD_R);
+        boolean positional = positionalAB || discLayout;
+        mask |= bit(positional ? east : south, DEVICE_ID_JOYPAD_A);
+        mask |= bit(positional ? south : east, DEVICE_ID_JOYPAD_B);
+        boolean leftTrigger = axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > TRIGGER_THRESHOLD;
+        boolean rightTrigger = axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > TRIGGER_THRESHOLD;
+        if (discLayout) {
+            mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_X), DEVICE_ID_JOYPAD_Y);
+            mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_Y), DEVICE_ID_JOYPAD_X);
+            mask |= bit(leftTrigger, DEVICE_ID_JOYPAD_L2);
+            mask |= bit(rightTrigger, DEVICE_ID_JOYPAD_R2);
+            leftTrigger = false;
+            rightTrigger = false;
+        }
+        mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER) || leftTrigger, DEVICE_ID_JOYPAD_L);
+        mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER) || rightTrigger, DEVICE_ID_JOYPAD_R);
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_START), DEVICE_ID_JOYPAD_START);
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_BACK), DEVICE_ID_JOYPAD_SELECT);
 

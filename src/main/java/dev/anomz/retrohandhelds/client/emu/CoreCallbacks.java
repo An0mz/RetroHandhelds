@@ -10,7 +10,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 
 /**
  * The frontend side of libretro. Every callback catches everything, since an exception must never
@@ -18,12 +18,15 @@ import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
  */
 final class CoreCallbacks {
     // Fields, not locals: JNA only keeps weak references, and the core keeps calling these.
-    final MgbaCore.EnvironmentCallback environment = this::environment;
-    final MgbaCore.VideoRefreshCallback videoRefresh = this::videoRefresh;
-    final MgbaCore.AudioSampleCallback audioSample = this::audioSample;
-    final MgbaCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
-    final MgbaCore.InputPollCallback inputPoll = this::inputPoll;
-    final MgbaCore.InputStateCallback inputState = this::inputState;
+    /** {@code retro_game_geometry}: four unsigned ints, then the float aspect ratio. */
+    private static final int GEOMETRY_ASPECT_OFFSET = 16;
+
+    final LibretroCore.EnvironmentCallback environment = this::environment;
+    final LibretroCore.VideoRefreshCallback videoRefresh = this::videoRefresh;
+    final LibretroCore.AudioSampleCallback audioSample = this::audioSample;
+    final LibretroCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
+    final LibretroCore.InputPollCallback inputPoll = this::inputPoll;
+    final LibretroCore.InputStateCallback inputState = this::inputState;
 
     private final FrameBuffer frames;
     private final JoypadState joypad;
@@ -34,8 +37,8 @@ final class CoreCallbacks {
     private final CoreOptions options;
     private final Memory systemDir;
     private final Memory saveDir;
-    private final int[] row32 = new int[FrameBuffer.WIDTH];
-    private final short[] row16 = new short[FrameBuffer.WIDTH];
+    private final int[] row32;
+    private final short[] row16;
     private final short[] audioScratch = new short[4096];
     private final short[] audioPair = new short[2];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
@@ -54,6 +57,8 @@ final class CoreCallbacks {
         this.options = options;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
+        this.row32 = new int[frames.stride()];
+        this.row16 = new short[frames.stride()];
     }
 
     private byte environment(int cmd, Pointer data) {
@@ -94,6 +99,11 @@ final class CoreCallbacks {
                     data.setPointer(0, saveDir);
                     return TRUE;
                 }
+                case ENVIRONMENT_SET_GEOMETRY, ENVIRONMENT_SET_SYSTEM_AV_INFO -> {
+                    // The picture size arrives with every frame; only the aspect ratio is needed here.
+                    frames.setAspect(data.getFloat(GEOMETRY_ASPECT_OFFSET));
+                    return TRUE;
+                }
                 default -> {
                     return FALSE;
                 }
@@ -110,11 +120,11 @@ final class CoreCallbacks {
             return;
         }
         try {
-            int w = Math.min(width, FrameBuffer.WIDTH);
-            int h = Math.min(height, FrameBuffer.HEIGHT);
+            int w = Math.min(width, frames.stride());
+            int h = Math.min(height, frames.maxHeight());
             int[] dst = frames.back();
             for (int y = 0; y < h; y++) {
-                int out = y * FrameBuffer.WIDTH;
+                int out = y * frames.stride();
                 long offset = y * pitch;
                 if (pixelFormat == PIXEL_FORMAT_XRGB8888) {
                     data.read(offset, row32, 0, w);

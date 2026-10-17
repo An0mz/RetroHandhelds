@@ -119,8 +119,10 @@ public final class ScreenBroadcaster {
         ScreenStrips.Encoder strips = new ScreenStrips.Encoder();
         AudioCodec.Encoder sound = new AudioCodec.Encoder();
         AudioCodec.Downmixer downmixer = null;
-        int[] pixels = new int[FrameBuffer.PIXELS];
-        int[] size = {FrameBuffer.WIDTH, FrameBuffer.HEIGHT};
+        int[] pixels = new int[0];
+        int[] size = new int[2];
+        int[] shared = new int[ScreenStrips.MAX_WIDTH * ScreenStrips.MAX_HEIGHT];
+        int[] sharedSize = new int[2];
         short[] stereo = new short[1 << 16];
         short[] mono = new short[AudioCodec.PACKET_SAMPLES * 4];
         int monoCount = 0;
@@ -136,8 +138,12 @@ public final class ScreenBroadcaster {
                     continue;
                 }
                 AudioRingBuffer ring = current.session().sharedAudio();
+                FrameBuffer frames = current.session().frames();
                 if (!current.sameSource(last)) {
                     // New console, handheld or game: everyone nearby needs the full picture and fresh sound.
+                    if (pixels.length < frames.capacity()) {
+                        pixels = new int[frames.capacity()];
+                    }
                     strips.reset();
                     sound.reset();
                     downmixer = null;
@@ -171,12 +177,14 @@ public final class ScreenBroadcaster {
                 long now = System.nanoTime();
                 if (now >= nextPicture) {
                     nextPicture = now + 1_000_000_000L / Math.max(1, current.fps());
-                    long frame = current.session().frames().copyIfNewer(pixels, lastFrame, size);
+                    long frame = frames.copyIfNewer(pixels, lastFrame, size);
                     if (frame != lastFrame) {
                         lastFrame = frame;
-                        int width = size[0];
-                        int height = size[1];
-                        strips.encode(pixels, width, height,
+                        ScreenStrips.fit(pixels, frames.stride(), size[0], size[1],
+                                frames.aspect(size[0], size[1]), shared, sharedSize);
+                        int width = sharedSize[0];
+                        int height = sharedSize[1];
+                        strips.encode(shared, width, height,
                                 (strip, data) -> send(new ShareStripPayload(handheld, pos, width, height, strip, data)));
                     }
                 }
