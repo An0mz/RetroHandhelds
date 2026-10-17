@@ -25,6 +25,10 @@ public final class SessionDisplay implements AutoCloseable {
     SessionDisplay(FrameBuffer frames) {
         this.frames = frames;
         this.texture = new DynamicTexture(FrameBuffer.WIDTH, FrameBuffer.HEIGHT, true);
+        // This constructor allocates GPU memory without uploading anything, and drivers may hand back
+        // the previous session's freed texture, still showing its last frame. Start from black instead.
+        texture.getPixels().fillRect(0, 0, FrameBuffer.WIDTH, FrameBuffer.HEIGHT, 0xFF000000);
+        texture.upload();
         Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, texture);
     }
 
