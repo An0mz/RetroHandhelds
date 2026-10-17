@@ -125,6 +125,10 @@ public final class EmulatorSession {
         this.speed = Math.clamp(speed, 1, 4);
     }
 
+    public boolean isPaused() {
+        return paused;
+    }
+
     public int speed() {
         return speed;
     }

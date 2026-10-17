@@ -42,6 +42,13 @@ public final class RetroClientConfig {
                     "When false, the pad's A/B labels match the game's A/B.")
             .define("gamepadPositionalAB", false);
 
+    private static final ModConfigSpec.BooleanValue SHARE_MY_SCREEN = BUILDER
+            .comment("Let players near your console see your game (if the server allows screen sharing).")
+            .define("shareMyScreen", true);
+    private static final ModConfigSpec.BooleanValue SHOW_OTHER_SCREENS = BUILDER
+            .comment("Show the games other players share on their consoles and TVs.")
+            .define("showOtherScreens", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private RetroClientConfig() {
@@ -86,6 +93,14 @@ public final class RetroClientConfig {
 
     public static boolean gamepadPositionalAB() {
         return SPEC.isLoaded() && GAMEPAD_POSITIONAL_AB.get();
+    }
+
+    public static boolean shareMyScreen() {
+        return !SPEC.isLoaded() || SHARE_MY_SCREEN.get();
+    }
+
+    public static boolean showOtherScreens() {
+        return !SPEC.isLoaded() || SHOW_OTHER_SCREENS.get();
     }
 
     public static void setVolume(int volume) {

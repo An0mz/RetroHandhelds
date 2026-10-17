@@ -10,7 +10,8 @@ import dev.anomz.retrohandhelds.block.TvBlockEntity;
 import dev.anomz.retrohandhelds.block.TvLayout;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
-import dev.anomz.retrohandhelds.client.session.SessionDisplay;
+import dev.anomz.retrohandhelds.client.session.ScreenImage;
+import dev.anomz.retrohandhelds.client.share.RemoteScreens;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -22,7 +23,7 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Draws this TV's slice of the running game when its screen touches the console being played.
+ * Draws this TV's slice of a game when its screen touches a console being played, here or by another player.
  * Every TV of a screen computes the same letterboxed picture and draws only the part over itself.
  */
 public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
@@ -36,16 +37,12 @@ public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
     @Override
     public void render(TvBlockEntity tv, float partialTick, PoseStack poseStack, MultiBufferSource buffers,
             int packedLight, int packedOverlay) {
-        BlockPos consolePos = ConsoleSessions.activeConsolePos();
         BlockState state = tv.getBlockState();
-        if (consolePos == null || tv.getLevel() == null || !state.hasProperty(HorizontalDirectionalBlock.FACING)) {
+        if (tv.getLevel() == null || !state.hasProperty(HorizontalDirectionalBlock.FACING)) {
             return;
         }
         TvLayout layout = tv.layout(tv.getLevel().getGameTime());
-        if (!layout.touches(consolePos)) {
-            return;
-        }
-        SessionDisplay display = ConsoleSessions.displayAt(consolePos);
+        ScreenImage display = source(layout);
         if (display == null) {
             return;
         }
@@ -91,6 +88,20 @@ public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         vertex(consumer, pose, right, bottom, u1, vBottom);
         vertex(consumer, pose, right, top, u1, vTop);
         poseStack.popPose();
+    }
+
+    /** The game this screen shows: a touching console running here, else one shared by another player. */
+    private static ScreenImage source(TvLayout layout) {
+        BlockPos local = ConsoleSessions.activeConsolePos();
+        if (local != null && layout.touches(local)) {
+            return ConsoleSessions.displayAt(local);
+        }
+        for (BlockPos remote : RemoteScreens.positions()) {
+            if (layout.touches(remote)) {
+                return RemoteScreens.imageFor(remote);
+            }
+        }
+        return null;
     }
 
     private static void vertex(VertexConsumer consumer, Matrix4f pose, float x, float y, float u, float v) {

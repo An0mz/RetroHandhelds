@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
  * GPU texture showing a session's latest frame. Render thread only: created, updated and closed
  * there, so the emulator thread never touches it.
  */
-public final class SessionDisplay implements AutoCloseable {
+public final class SessionDisplay implements ScreenImage, AutoCloseable {
     private static final ResourceLocation TEXTURE_ID =
             ResourceLocation.fromNamespaceAndPath(RetroHandhelds.MODID, "dynamic/emulator_screen");
 

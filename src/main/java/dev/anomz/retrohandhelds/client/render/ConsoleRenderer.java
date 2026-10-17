@@ -8,8 +8,8 @@ import com.mojang.math.Axis;
 
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
-import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
-import dev.anomz.retrohandhelds.client.session.SessionDisplay;
+import dev.anomz.retrohandhelds.client.session.ScreenImage;
+import dev.anomz.retrohandhelds.client.share.RemoteScreens;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -19,7 +19,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Draws the running game on the console's screen area while this client is playing it. */
+/** Draws the game on the console's screen: this client's own game, or one another player shares. */
 public final class ConsoleRenderer implements BlockEntityRenderer<ConsoleBlockEntity> {
     // Screen area of the front texture, in block pixels: x 2..14, y 5..13 (3:2 like the GBA),
     // as half-sizes around its center, relative to the block center.
@@ -35,7 +35,7 @@ public final class ConsoleRenderer implements BlockEntityRenderer<ConsoleBlockEn
     @Override
     public void render(ConsoleBlockEntity console, float partialTick, PoseStack poseStack, MultiBufferSource buffers,
             int packedLight, int packedOverlay) {
-        SessionDisplay display = ConsoleSessions.displayAt(console.getBlockPos());
+        ScreenImage display = RemoteScreens.imageFor(console.getBlockPos());
         BlockState state = console.getBlockState();
         if (display == null || !state.hasProperty(HorizontalDirectionalBlock.FACING)) {
             return;

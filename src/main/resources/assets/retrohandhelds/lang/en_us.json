@@ -61,5 +61,11 @@
   "screen.retrohandhelds.view.fullscreen": "Full-screen view",
   "screen.retrohandhelds.view.unavailable": "Only full screen: nothing to watch in the world",
   "retrohandhelds.configuration.inWorldView": "Start in In-World View",
-  "block.retrohandhelds.tv": "Retro TV"
+  "block.retrohandhelds.tv": "Retro TV",
+  "retrohandhelds.configuration.screenSharing": "Screen Sharing",
+  "retrohandhelds.configuration.screenShareFps": "Shared Screen FPS",
+  "retrohandhelds.configuration.screenShareRadius": "Shared Screen Radius",
+  "retrohandhelds.configuration.screenShareKBps": "Shared Screen KB/s per Player",
+  "retrohandhelds.configuration.shareMyScreen": "Share My Screen",
+  "retrohandhelds.configuration.showOtherScreens": "Show Other Players' Screens"
 }

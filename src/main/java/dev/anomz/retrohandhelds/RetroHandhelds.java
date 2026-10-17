@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import dev.anomz.retrohandhelds.network.AssignRomPayload;
+import dev.anomz.retrohandhelds.network.ScreenStripPayload;
+import dev.anomz.retrohandhelds.network.ShareStripPayload;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -30,10 +32,14 @@ public final class RetroHandhelds {
 
     private static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         AssignRomPayload.forget(event.getEntity());
+        ShareStripPayload.forget(event.getEntity());
     }
 
     private static void onRegisterPayloads(RegisterPayloadHandlersEvent event) {
-        event.registrar("1").playToServer(AssignRomPayload.TYPE, AssignRomPayload.STREAM_CODEC, AssignRomPayload::handle);
+        event.registrar("1")
+                .playToServer(AssignRomPayload.TYPE, AssignRomPayload.STREAM_CODEC, AssignRomPayload::handle)
+                .playToServer(ShareStripPayload.TYPE, ShareStripPayload.STREAM_CODEC, ShareStripPayload::handle)
+                .playToClient(ScreenStripPayload.TYPE, ScreenStripPayload.STREAM_CODEC, ScreenStripPayload::handle);
     }
 
     private static void onBuildCreativeTabs(BuildCreativeModeTabContentsEvent event) {

@@ -15,6 +15,7 @@ import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
+import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
@@ -168,6 +169,18 @@ public final class ConsoleSessions {
         Active current = active;
         return current != null && current.handheld() && cartridge != null && cartridge.equals(current.cartridge())
                 ? current.display() : null;
+    }
+
+    /** Frames of the game running on a console here, or null (no game, or it runs on a handheld). */
+    @Nullable
+    public static FrameBuffer activeFrames() {
+        Active current = active;
+        return current == null || current.pos() == null ? null : current.session().frames();
+    }
+
+    public static boolean activePaused() {
+        Active current = active;
+        return current != null && current.session().isPaused();
     }
 
     /** The console block whose game is running on this client, if the running game is on a console. */
