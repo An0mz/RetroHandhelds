@@ -7,6 +7,8 @@ public final class LibretroConstants {
 
     public static final int ENVIRONMENT_GET_SYSTEM_DIRECTORY = 9;
     public static final int ENVIRONMENT_SET_PIXEL_FORMAT = 10;
+    public static final int ENVIRONMENT_GET_VARIABLE = 15;
+    public static final int ENVIRONMENT_GET_VARIABLE_UPDATE = 17;
     public static final int ENVIRONMENT_GET_SAVE_DIRECTORY = 31;
 
     public static final int PIXEL_FORMAT_0RGB1555 = 0;

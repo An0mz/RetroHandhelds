@@ -13,6 +13,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
+import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
@@ -67,7 +68,8 @@ public final class RetroHandheldsCommand {
         }
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false);
+            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
+                    new CoreOptions(false, false));
         } catch (IllegalStateException e) {
             source.sendFailure(Component.translatable("message.retrohandhelds.busy"));
             return 0;

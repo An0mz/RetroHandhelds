@@ -13,6 +13,7 @@ import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
+import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
 import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
@@ -108,7 +109,8 @@ public final class ConsoleSessions {
         stop();
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true);
+            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
+                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()));
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();
@@ -212,5 +214,6 @@ public final class ConsoleSessions {
         }
         float playerVolume = RetroClientConfig.muted() ? 0 : RetroClientConfig.volume() / (float) RetroClientConfig.VOLUME_STEPS;
         current.session().setVolume(volume * playerVolume);
+        current.session().options().set(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting());
     }
 }

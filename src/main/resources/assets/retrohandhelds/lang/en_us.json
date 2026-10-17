@@ -46,5 +46,7 @@
   "retrohandhelds.configuration.section.retrohandhelds.client.toml": "Player Settings",
   "retrohandhelds.configuration.section.retrohandhelds.client.toml.title": "Retro Handhelds Player Settings",
   "retrohandhelds.configuration.volume": "Volume (0-10)",
-  "retrohandhelds.configuration.muted": "Muted"
+  "retrohandhelds.configuration.muted": "Muted",
+  "retrohandhelds.configuration.colorCorrection": "GBA Color Correction",
+  "retrohandhelds.configuration.lcdGhosting": "LCD Ghosting"
 }

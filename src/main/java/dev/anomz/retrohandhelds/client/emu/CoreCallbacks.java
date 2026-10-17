@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
@@ -27,6 +28,7 @@ final class CoreCallbacks {
     private final FrameBuffer frames;
     private final JoypadState joypad;
     private final AudioRingBuffer audio;
+    private final CoreOptions options;
     private final Memory systemDir;
     private final Memory saveDir;
     private final int[] row32 = new int[FrameBuffer.WIDTH];
@@ -37,10 +39,12 @@ final class CoreCallbacks {
     private int polledButtons;
     private boolean errorLogged;
 
-    CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, Path systemDir, Path saveDir) {
+    CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, CoreOptions options,
+            Path systemDir, Path saveDir) {
         this.frames = frames;
         this.joypad = joypad;
         this.audio = audio;
+        this.options = options;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
     }
@@ -62,6 +66,21 @@ final class CoreCallbacks {
                 }
                 case ENVIRONMENT_GET_SYSTEM_DIRECTORY -> {
                     data.setPointer(0, systemDir);
+                    return TRUE;
+                }
+                case ENVIRONMENT_GET_VARIABLE -> {
+                    // struct retro_variable { const char *key; const char *value; }
+                    Pointer key = data.getPointer(0);
+                    Memory value = key == null ? null : options.valueFor(key.getString(0, "UTF-8"));
+                    if (value == null) {
+                        return FALSE;
+                    }
+                    data.setPointer(Native.POINTER_SIZE, value);
+                    return TRUE;
+                }
+                case ENVIRONMENT_GET_VARIABLE_UPDATE -> {
+                    // Asked every frame; answering "changed" makes the core re-read its options.
+                    data.setByte(0, options.consumeChanged() ? TRUE : FALSE);
                     return TRUE;
                 }
                 case ENVIRONMENT_GET_SAVE_DIRECTORY -> {

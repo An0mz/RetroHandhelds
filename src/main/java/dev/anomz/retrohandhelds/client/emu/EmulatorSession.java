@@ -44,6 +44,7 @@ public final class EmulatorSession {
     private final JoypadState joypad = new JoypadState();
     private final AudioRingBuffer audio = new AudioRingBuffer(AUDIO_RING_SAMPLES);
     private final boolean withSound;
+    private final CoreOptions options;
     @Nullable
     private final SaveFiles saves;
     private final ConcurrentLinkedQueue<StateRequest> stateRequests = new ConcurrentLinkedQueue<>();
@@ -63,23 +64,26 @@ public final class EmulatorSession {
     private SaveRam saveRam;
     private SaveStates saveStates;
 
-    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves, boolean withSound) {
+    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves,
+            boolean withSound, CoreOptions options) {
         this.core = core;
         this.rom = rom;
         this.saves = saves;
         this.withSound = withSound;
-        this.callbacks = new CoreCallbacks(frames, joypad, audio, systemDir, saveDir);
+        this.options = options;
+        this.callbacks = new CoreCallbacks(frames, joypad, audio, options, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
     }
 
     /**
      * @param saves where save RAM and the save state live; null runs without touching any saves
+     * @param options core options, read by the core while it starts and whenever they change
      * @throws IllegalStateException if another session is still active
      */
     public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir,
-            @Nullable SaveFiles saves, boolean withSound) {
-        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound);
+            @Nullable SaveFiles saves, boolean withSound, CoreOptions options) {
+        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound, options);
         if (!ACTIVE.compareAndSet(null, session)) {
             throw new IllegalStateException("An emulator session is already running");
         }
@@ -146,6 +150,10 @@ public final class EmulatorSession {
             failPendingRequests();
         }
         return result;
+    }
+
+    public CoreOptions options() {
+        return options;
     }
 
     public JoypadState joypad() {

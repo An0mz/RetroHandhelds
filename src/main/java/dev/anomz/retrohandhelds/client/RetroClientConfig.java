@@ -15,6 +15,13 @@ public final class RetroClientConfig {
             .comment("Mute the emulator.")
             .define("muted", false);
 
+    private static final ModConfigSpec.BooleanValue COLOR_CORRECTION = BUILDER
+            .comment("Adjust colors to look like a real GBA/GBC screen (less saturated, slightly darker).")
+            .define("colorCorrection", false);
+    private static final ModConfigSpec.BooleanValue LCD_GHOSTING = BUILDER
+            .comment("Blend each frame with the previous one, like the slow LCD of the original hardware.")
+            .define("lcdGhosting", false);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private RetroClientConfig() {
@@ -26,6 +33,14 @@ public final class RetroClientConfig {
 
     public static boolean muted() {
         return SPEC.isLoaded() && MUTED.get();
+    }
+
+    public static boolean colorCorrection() {
+        return SPEC.isLoaded() && COLOR_CORRECTION.get();
+    }
+
+    public static boolean lcdGhosting() {
+        return SPEC.isLoaded() && LCD_GHOSTING.get();
     }
 
     public static void setVolume(int volume) {
