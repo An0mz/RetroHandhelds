@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import dev.anomz.retrohandhelds.network.AssignRomPayload;
+import dev.anomz.retrohandhelds.network.AudioChunkPayload;
+import dev.anomz.retrohandhelds.network.ShareAudioPayload;
 import dev.anomz.retrohandhelds.network.ScreenStripPayload;
 import dev.anomz.retrohandhelds.network.ShareStripPayload;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -39,7 +41,9 @@ public final class RetroHandhelds {
         event.registrar("1")
                 .playToServer(AssignRomPayload.TYPE, AssignRomPayload.STREAM_CODEC, AssignRomPayload::handle)
                 .playToServer(ShareStripPayload.TYPE, ShareStripPayload.STREAM_CODEC, ShareStripPayload::handle)
-                .playToClient(ScreenStripPayload.TYPE, ScreenStripPayload.STREAM_CODEC, ScreenStripPayload::handle);
+                .playToClient(ScreenStripPayload.TYPE, ScreenStripPayload.STREAM_CODEC, ScreenStripPayload::handle)
+                .playToServer(ShareAudioPayload.TYPE, ShareAudioPayload.STREAM_CODEC, ShareAudioPayload::handle)
+                .playToClient(AudioChunkPayload.TYPE, AudioChunkPayload.STREAM_CODEC, AudioChunkPayload::handle);
     }
 
     private static void onBuildCreativeTabs(BuildCreativeModeTabContentsEvent event) {

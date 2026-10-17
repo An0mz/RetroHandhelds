@@ -15,6 +15,7 @@ import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
 import dev.anomz.retrohandhelds.client.render.TvRenderer;
 import dev.anomz.retrohandhelds.client.screen.RomPickerScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
+import dev.anomz.retrohandhelds.client.share.RemoteAudio;
 import dev.anomz.retrohandhelds.client.share.RemoteScreens;
 import dev.anomz.retrohandhelds.client.share.ScreenBroadcaster;
 import dev.anomz.retrohandhelds.item.CartridgeData;
@@ -84,11 +85,13 @@ public final class RetroHandheldsClient {
         ConsoleSessions.tick(minecraft);
         ScreenBroadcaster.tick(minecraft);
         RemoteScreens.tick();
+        RemoteAudio.tick(minecraft);
     }
 
     private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ConsoleSessions.stop();
         RemoteScreens.clear();
+        RemoteAudio.clear();
     }
 
     /** Empty hand on a console powers it on. Inserting and ejecting are handled by the block on the server. */

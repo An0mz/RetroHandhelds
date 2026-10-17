@@ -28,6 +28,9 @@ final class CoreCallbacks {
     private final FrameBuffer frames;
     private final JoypadState joypad;
     private final AudioRingBuffer audio;
+    /** Second copy of the sound for screen sharing; only written while sharing is on. */
+    private final AudioRingBuffer sharedAudio;
+    private volatile boolean shareAudio;
     private final CoreOptions options;
     private final Memory systemDir;
     private final Memory saveDir;
@@ -42,11 +45,12 @@ final class CoreCallbacks {
     private int decimationPhase;
     private boolean errorLogged;
 
-    CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, CoreOptions options,
-            Path systemDir, Path saveDir) {
+    CoreCallbacks(FrameBuffer frames, JoypadState joypad, AudioRingBuffer audio, AudioRingBuffer sharedAudio,
+            CoreOptions options, Path systemDir, Path saveDir) {
         this.frames = frames;
         this.joypad = joypad;
         this.audio = audio;
+        this.sharedAudio = sharedAudio;
         this.options = options;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
@@ -138,7 +142,11 @@ final class CoreCallbacks {
                 for (long done = 0; done < total; ) {
                     int n = (int) Math.min(total - done, audioScratch.length);
                     data.read(done * Short.BYTES, audioScratch, 0, n);
-                    audio.write(audioScratch, decimate(n));
+                    int kept = decimate(n);
+                    audio.write(audioScratch, kept);
+                    if (shareAudio) {
+                        sharedAudio.write(audioScratch, kept);
+                    }
                     done += n;
                 }
             }
@@ -146,6 +154,10 @@ final class CoreCallbacks {
             logOnce("audio batch", t);
         }
         return frameCount;
+    }
+
+    void setShareAudio(boolean share) {
+        shareAudio = share;
     }
 
     /** Emulator thread only, between frames. */

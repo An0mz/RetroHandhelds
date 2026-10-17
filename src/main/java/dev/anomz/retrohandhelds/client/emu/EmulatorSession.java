@@ -43,6 +43,8 @@ public final class EmulatorSession {
     private final FrameBuffer frames = new FrameBuffer();
     private final JoypadState joypad = new JoypadState();
     private final AudioRingBuffer audio = new AudioRingBuffer(AUDIO_RING_SAMPLES);
+    private final AudioRingBuffer sharedAudio = new AudioRingBuffer(AUDIO_RING_SAMPLES);
+    private volatile int sampleRate;
     private final boolean withSound;
     private final CoreOptions options;
     @Nullable
@@ -72,7 +74,7 @@ public final class EmulatorSession {
         this.saves = saves;
         this.withSound = withSound;
         this.options = options;
-        this.callbacks = new CoreCallbacks(frames, joypad, audio, options, systemDir, saveDir);
+        this.callbacks = new CoreCallbacks(frames, joypad, audio, sharedAudio, options, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
     }
@@ -123,6 +125,21 @@ public final class EmulatorSession {
     /** Frames emulated per real frame: 1 is normal, 2-4 fast-forwards. Safe to call from any thread. */
     public void setSpeed(int speed) {
         this.speed = Math.clamp(speed, 1, 4);
+    }
+
+    /** Starts or stops copying the sound for screen sharing. Safe to call from any thread. */
+    public void setAudioSharing(boolean share) {
+        callbacks.setShareAudio(share);
+    }
+
+    /** The shared copy of the sound (interleaved stereo at {@link #sampleRate()}); read by the sharer only. */
+    public AudioRingBuffer sharedAudio() {
+        return sharedAudio;
+    }
+
+    /** The core's sound sample rate, or 0 until the game has loaded. */
+    public int sampleRate() {
+        return sampleRate;
     }
 
     public boolean isPaused() {
@@ -219,6 +236,7 @@ public final class EmulatorSession {
             double fps = av.timing.fps > 1 && av.timing.fps < 240 ? av.timing.fps : GBA_FPS;
             RetroHandhelds.LOGGER.info("Retro Handhelds: running {} ({}x{} @ {} fps, audio {} Hz)",
                     rom.getFileName(), av.geometry.baseWidth, av.geometry.baseHeight, fps, av.timing.sampleRate);
+            sampleRate = (int) av.timing.sampleRate;
             if (withSound) {
                 audioOutput = AudioOutput.open(audio, (int) av.timing.sampleRate).orElse(null);
             }

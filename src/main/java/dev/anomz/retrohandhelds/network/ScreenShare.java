@@ -7,6 +7,9 @@ public final class ScreenShare {
     public static final int MAX_HEIGHT = 160;
     /** Largest compressed strip; well under the 32 KB limit for client-to-server packets. */
     public static final int MAX_DATA = 16384;
+    /** Shared sound: mono ADPCM packets of 2048 samples (2-byte predictor, 1-byte step index, 4 bits per sample). */
+    public static final int AUDIO_PACKET_SAMPLES = 2048;
+    public static final int AUDIO_PACKET_BYTES = 3 + AUDIO_PACKET_SAMPLES / 2;
     /** A player may share a console's screen from this far away (matches when the client switches it off). */
     public static final double MAX_SENDER_DISTANCE = 48;
 

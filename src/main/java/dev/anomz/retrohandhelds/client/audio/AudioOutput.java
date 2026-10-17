@@ -4,27 +4,40 @@ import static org.lwjgl.openal.AL10.*;
 
 import java.util.Optional;
 
+import org.lwjgl.openal.AL11;
 import org.lwjgl.openal.ALC10;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.emu.AudioRingBuffer;
 
 /**
- * Streams a ring buffer through one non-positional OpenAL source on Minecraft's AL context.
- * Owned and pumped by a single thread. The source plays relative to the listener, so only
- * Minecraft's listener gain (the Master slider) and our own gain apply.
+ * Streams a ring buffer through one OpenAL source on Minecraft's AL context. Owned and pumped by a
+ * single thread. Either plays relative to the listener ({@link #LOCAL}: the player's own game), or
+ * from a point in the world with distance falloff ({@link #openAt}: another player's console).
  */
 public final class AudioOutput implements AutoCloseable {
     private static final int BUFFER_COUNT = 4;
-    /** Each OpenAL buffer holds about 1/32 s, so four queued buffers cover about 125 ms of hiccups. */
-    private static final int CHUNKS_PER_SECOND = 32;
-    /** Buffers to queue before starting or restarting playback (about 60 ms), so one hitch doesn't stop it again. */
-    private static final int START_CHUNKS = 2;
+
+    /**
+     * @param channels 1 (mono, needed for 3D placement) or 2 (stereo)
+     * @param chunksPerSecond OpenAL buffer length; four buffers are queued
+     * @param startChunks buffers to have before starting or restarting playback
+     * @param backlogChunks ring contents beyond this many buffers are stale and dropped
+     */
+    public record Settings(int channels, int chunksPerSecond, int startChunks, int backlogChunks) {
+    }
+
+    /** The player's own game: stereo, short buffers (about 31 ms) for low latency; pumped every frame. */
+    public static final Settings LOCAL = new Settings(2, 32, 2, 2);
+    /** Another player's game over the network: mono, 100 ms buffers and a deeper backlog to absorb jitter. */
+    public static final Settings SHARED = new Settings(1, 10, 2, 6);
     /** Pumps between health reports (about 10 s at 60 pumps per second). */
     private static final int HEALTH_INTERVAL = 600;
 
     private final AudioRingBuffer ring;
     private final int sampleRate;
+    private final int format;
+    private final int startChunks;
     private final long context;
     private final int source;
     private final int[] buffers = new int[BUFFER_COUNT];
@@ -41,13 +54,16 @@ public final class AudioOutput implements AutoCloseable {
     private long underruns;
     private long droppedSamples;
 
-    private AudioOutput(AudioRingBuffer ring, int sampleRate, long context) {
+    private AudioOutput(AudioRingBuffer ring, int sampleRate, long context, Settings settings) {
         this.ring = ring;
         this.sampleRate = sampleRate;
         this.context = context;
-        this.chunkSamples = Math.max(256, sampleRate / CHUNKS_PER_SECOND) * 2;
+        this.format = settings.channels() == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+        this.startChunks = settings.startChunks();
+        // Whole stereo pairs (and even mono counts), matching how the ring stores samples.
+        this.chunkSamples = (Math.max(256, sampleRate / settings.chunksPerSecond()) * settings.channels()) & ~1;
         this.chunk = new short[chunkSamples];
-        this.maxRingBacklog = chunkSamples * 2;
+        this.maxRingBacklog = chunkSamples * settings.backlogChunks();
         alGetError();
         this.source = alGenSources();
         alGenBuffers(buffers);
@@ -62,18 +78,49 @@ public final class AudioOutput implements AutoCloseable {
         }
     }
 
-    /** Empty if Minecraft's sound system is not running or the source cannot be created. */
+    /** The player's own game ({@link #LOCAL}). Empty if Minecraft's sound system is not running. */
     public static Optional<AudioOutput> open(AudioRingBuffer ring, int sampleRate) {
+        return open(ring, sampleRate, LOCAL);
+    }
+
+    /** Empty if Minecraft's sound system is not running or the source cannot be created. */
+    public static Optional<AudioOutput> open(AudioRingBuffer ring, int sampleRate, Settings settings) {
         try {
             long context = ALC10.alcGetCurrentContext();
             if (context == 0 || sampleRate <= 0) {
                 RetroHandhelds.LOGGER.warn("Retro Handhelds: no sound (OpenAL context {}, sample rate {})", context, sampleRate);
                 return Optional.empty();
             }
-            return Optional.of(new AudioOutput(ring, sampleRate, context));
+            return Optional.of(new AudioOutput(ring, sampleRate, context, settings));
         } catch (Throwable t) {
             RetroHandhelds.LOGGER.error("Retro Handhelds: could not open audio output", t);
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Mono sound coming from a point in the world, like Minecraft's own sounds: full volume within
+     * {@code fullVolumeDistance} blocks, fading linearly to silence at {@code silentDistance}.
+     */
+    public static Optional<AudioOutput> openAt(AudioRingBuffer ring, int sampleRate, double x, double y, double z,
+            float fullVolumeDistance, float silentDistance) {
+        Optional<AudioOutput> output = open(ring, sampleRate, SHARED);
+        output.ifPresent(o -> o.placeAt(x, y, z, fullVolumeDistance, silentDistance));
+        return output;
+    }
+
+    private void placeAt(double x, double y, double z, float fullVolumeDistance, float silentDistance) {
+        try {
+            alSourcei(source, AL_SOURCE_RELATIVE, AL_FALSE);
+            alSource3f(source, AL_POSITION, (float) x, (float) y, (float) z);
+            // Per-source distance model, which Minecraft enables for its own sounds.
+            alSourcei(source, AL_DISTANCE_MODEL, AL11.AL_LINEAR_DISTANCE);
+            alSourcef(source, AL_REFERENCE_DISTANCE, fullVolumeDistance);
+            alSourcef(source, AL_MAX_DISTANCE, silentDistance);
+            alSourcef(source, AL_ROLLOFF_FACTOR, 1);
+        } catch (Throwable t) {
+            broken = true;
+            RetroHandhelds.LOGGER.error("Retro Handhelds: could not place shared sound in the world", t);
         }
     }
 
@@ -106,13 +153,13 @@ public final class AudioOutput implements AutoCloseable {
             }
             boolean playing = alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING;
             // Not playing (first start or after an underrun): wait until there is enough to prime with.
-            if (!playing && ring.available() < chunkSamples * START_CHUNKS) {
+            if (!playing && ring.available() < chunkSamples * startChunks) {
                 return;
             }
             while (freeCount > 0 && ring.available() >= chunkSamples) {
                 ring.read(chunk, chunkSamples);
                 int buffer = freeBuffers[--freeCount];
-                alBufferData(buffer, AL_FORMAT_STEREO16, chunk, sampleRate);
+                alBufferData(buffer, format, chunk, sampleRate);
                 alSourceQueueBuffers(source, buffer);
             }
             if (!playing) {
