@@ -18,6 +18,8 @@ public final class AudioOutput implements AutoCloseable {
     private static final int BUFFER_COUNT = 4;
     /** Each OpenAL buffer holds about 1/32 s, so four queued buffers cover about 125 ms of hiccups. */
     private static final int CHUNKS_PER_SECOND = 32;
+    /** Buffers to queue before starting or restarting playback (about 60 ms), so one hitch doesn't stop it again. */
+    private static final int START_CHUNKS = 2;
     /** Pumps between health reports (about 10 s at 60 pumps per second). */
     private static final int HEALTH_INTERVAL = 600;
 
@@ -91,6 +93,9 @@ public final class AudioOutput implements AutoCloseable {
                 return;
             }
             alSourcef(source, AL_GAIN, gain);
+            // On a stopped source OpenAL Soft reports every queued buffer as processed, even ones queued
+            // a moment ago, so a stopped source is emptied here and must be refilled and restarted in
+            // this same call; waiting for the queue to grow across calls would never succeed.
             for (int processed = alGetSourcei(source, AL_BUFFERS_PROCESSED); processed > 0; processed--) {
                 freeBuffers[freeCount++] = alSourceUnqueueBuffers(source);
             }
@@ -99,14 +104,18 @@ public final class AudioOutput implements AutoCloseable {
                 droppedSamples += backlog;
                 ring.skip(backlog);
             }
+            boolean playing = alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING;
+            // Not playing (first start or after an underrun): wait until there is enough to prime with.
+            if (!playing && ring.available() < chunkSamples * START_CHUNKS) {
+                return;
+            }
             while (freeCount > 0 && ring.available() >= chunkSamples) {
                 ring.read(chunk, chunkSamples);
                 int buffer = freeBuffers[--freeCount];
                 alBufferData(buffer, AL_FORMAT_STEREO16, chunk, sampleRate);
                 alSourceQueueBuffers(source, buffer);
             }
-            // Also restarts the source after an underrun, once there is a little audio queued again.
-            if (alGetSourcei(source, AL_SOURCE_STATE) != AL_PLAYING && alGetSourcei(source, AL_BUFFERS_QUEUED) >= 2) {
+            if (!playing) {
                 // The first start is not an underrun; any later restart is.
                 if (started && ++underruns % 50 == 1) {
                     RetroHandhelds.LOGGER.warn("Retro Handhelds: audio underrun #{}, restarting playback", underruns);
