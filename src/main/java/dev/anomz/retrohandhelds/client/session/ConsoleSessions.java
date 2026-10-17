@@ -28,8 +28,10 @@ import net.minecraft.world.phys.Vec3;
  * if any. Render thread only.
  */
 public final class ConsoleSessions {
-    /** Sound fades out linearly to silence at this distance from the console. */
-    private static final double SOUND_RANGE = 16;
+    /** Full volume within this distance from the console. */
+    private static final double FULL_VOLUME_RANGE = 4;
+    /** Beyond full volume range, sound fades out linearly to silence at this distance. */
+    private static final double SOUND_RANGE = 32;
     /** Walking further away than this switches the console off. */
     private static final double STOP_RANGE = 48;
     private static final int VOLUME_STEPS = 10;
@@ -167,7 +169,7 @@ public final class ConsoleSessions {
                 return;
             }
             if (!(minecraft.screen instanceof EmulatorScreen)) {
-                volume *= (float) Math.max(0, 1 - distance / SOUND_RANGE);
+                volume *= (float) Math.clamp(1 - (distance - FULL_VOLUME_RANGE) / (SOUND_RANGE - FULL_VOLUME_RANGE), 0, 1);
             }
         }
         float playerVolume = muted ? 0 : volumeLevel / (float) VOLUME_STEPS;
