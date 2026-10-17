@@ -18,6 +18,7 @@ public final class SessionDisplay implements AutoCloseable {
 
     private final FrameBuffer frames;
     private final int[] pixels = new int[FrameBuffer.PIXELS];
+    private final int[] size = { FrameBuffer.WIDTH, FrameBuffer.HEIGHT };
     private DynamicTexture texture;
     private long lastFrame;
 
@@ -31,12 +32,21 @@ public final class SessionDisplay implements AutoCloseable {
         return TEXTURE_ID;
     }
 
+    /** Width of the game's picture in the texture's top-left corner (240 for GBA, 160 for Game Boy). */
+    public int width() {
+        return size[0];
+    }
+
+    public int height() {
+        return size[1];
+    }
+
     /** Uploads the newest frame if there is one. Cheap to call several times per frame. */
     public void update() {
         if (texture == null) {
             return;
         }
-        long frame = frames.copyIfNewer(pixels, lastFrame);
+        long frame = frames.copyIfNewer(pixels, lastFrame, size);
         if (frame == lastFrame) {
             return;
         }

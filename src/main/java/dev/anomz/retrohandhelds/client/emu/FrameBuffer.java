@@ -1,8 +1,9 @@
 package dev.anomz.retrohandhelds.client.emu;
 
 /**
- * Double buffer of 240x160 ABGR pixels (the layout {@code NativeImage.setPixelRGBA} expects).
- * The emulator thread fills {@link #back()} and swaps; any other thread copies the front buffer.
+ * Double buffer of up to 240x160 ABGR pixels (the layout {@code NativeImage.setPixelRGBA} expects).
+ * A smaller frame (160x144 for Game Boy games) fills the top-left corner. The emulator thread
+ * fills {@link #back()} and swaps; any other thread copies the front buffer.
  */
 public final class FrameBuffer {
     public static final int WIDTH = 240;
@@ -13,6 +14,8 @@ public final class FrameBuffer {
     private int[] back = new int[PIXELS];
     private int[] front = new int[PIXELS];
     private long frameCount;
+    private int frontWidth = WIDTH;
+    private int frontHeight = HEIGHT;
 
     /** Emulator thread only. */
     int[] back() {
@@ -20,23 +23,27 @@ public final class FrameBuffer {
     }
 
     /** Emulator thread only. */
-    void publish() {
+    void publish(int width, int height) {
         synchronized (lock) {
             int[] swap = front;
             front = back;
             back = swap;
+            frontWidth = width;
+            frontHeight = height;
             frameCount++;
         }
     }
 
     /**
-     * Copies the latest frame into {@code dst} only if it is newer than {@code lastSeen}.
-     * Returns the current frame count either way.
+     * Copies the latest frame into {@code dst} and its size into {@code sizeOut} (width, height),
+     * only if it is newer than {@code lastSeen}. Returns the current frame count either way.
      */
-    public long copyIfNewer(int[] dst, long lastSeen) {
+    public long copyIfNewer(int[] dst, long lastSeen, int[] sizeOut) {
         synchronized (lock) {
             if (frameCount != lastSeen) {
                 System.arraycopy(front, 0, dst, 0, PIXELS);
+                sizeOut[0] = frontWidth;
+                sizeOut[1] = frontHeight;
             }
             return frameCount;
         }

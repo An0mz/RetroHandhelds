@@ -103,7 +103,7 @@ final class CoreCallbacks {
                     }
                 }
             }
-            frames.publish();
+            frames.publish(w, h);
         } catch (Throwable t) {
             logOnce("video refresh", t);
         }
