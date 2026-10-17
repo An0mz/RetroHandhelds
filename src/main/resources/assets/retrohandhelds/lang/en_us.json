@@ -35,5 +35,12 @@
   "item.retrohandhelds.handheld": "Retro Handheld",
   "item.retrohandhelds.handheld.named": "Retro Handheld (%s)",
   "item.retrohandhelds.handheld.empty": "Right-click a cartridge onto it in your inventory",
-  "message.retrohandhelds.handheld_empty": "No cartridge: right-click one onto the handheld in your inventory"
+  "message.retrohandhelds.handheld_empty": "No cartridge: right-click one onto the handheld in your inventory",
+  "message.retrohandhelds.consoles_disabled": "Retro Consoles are disabled on this server",
+  "message.retrohandhelds.handhelds_disabled": "Retro Handhelds are disabled on this server",
+  "retrohandhelds.configuration.title": "Retro Handhelds",
+  "retrohandhelds.configuration.section.retrohandhelds.server.toml": "Server Settings",
+  "retrohandhelds.configuration.section.retrohandhelds.server.toml.title": "Retro Handhelds Server Settings",
+  "retrohandhelds.configuration.enableConsoles": "Enable Retro Consoles",
+  "retrohandhelds.configuration.enableHandhelds": "Enable Retro Handhelds"
 }

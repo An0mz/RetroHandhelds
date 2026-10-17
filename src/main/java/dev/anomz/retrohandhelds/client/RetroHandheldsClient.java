@@ -2,6 +2,7 @@ package dev.anomz.retrohandhelds.client;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
+import dev.anomz.retrohandhelds.RetroServerConfig;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
@@ -80,6 +81,10 @@ public final class RetroHandheldsClient {
                 || !(event.getLevel().getBlockEntity(event.getPos()) instanceof ConsoleBlockEntity console)) {
             return;
         }
+        if (!RetroServerConfig.consolesEnabled()) {
+            player.displayClientMessage(Component.translatable("message.retrohandhelds.consoles_disabled"), true);
+            return;
+        }
         CartridgeData cartridge = console.cartridgeData();
         if (cartridge == null) {
             player.displayClientMessage(Component.translatable("message.retrohandhelds.no_cartridge"), true);
@@ -97,7 +102,9 @@ public final class RetroHandheldsClient {
             Minecraft.getInstance().setScreen(new RomPickerScreen(event.getHand()));
         } else if (stack.is(RetroRegistries.HANDHELD)) {
             CartridgeData cartridge = HandheldItem.cartridgeData(stack);
-            if (cartridge == null) {
+            if (!RetroServerConfig.handheldsEnabled()) {
+                event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handhelds_disabled"), true);
+            } else if (cartridge == null) {
                 event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handheld_empty"), true);
             } else {
                 ConsoleSessions.powerOnHandheld(cartridge);

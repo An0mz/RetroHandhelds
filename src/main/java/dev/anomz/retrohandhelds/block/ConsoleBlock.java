@@ -3,6 +3,8 @@ package dev.anomz.retrohandhelds.block;
 import com.mojang.serialization.MapCodec;
 
 import dev.anomz.retrohandhelds.RetroRegistries;
+import dev.anomz.retrohandhelds.RetroServerConfig;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Containers;
@@ -65,6 +67,12 @@ public class ConsoleBlock extends BaseEntityBlock {
             Player player, InteractionHand hand, BlockHitResult hitResult) {
         if (!stack.is(RetroRegistries.CARTRIDGE) || stack.get(RetroRegistries.CARTRIDGE_DATA) == null) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        if (!RetroServerConfig.consolesEnabled()) {
+            if (!level.isClientSide()) {
+                player.displayClientMessage(Component.translatable("message.retrohandhelds.consoles_disabled"), true);
+            }
+            return ItemInteractionResult.sidedSuccess(level.isClientSide());
         }
         if (!level.isClientSide() && level.getBlockEntity(pos) instanceof ConsoleBlockEntity console) {
             ItemStack inserted = player.getAbilities().instabuild ? stack.copyWithCount(1) : stack.split(1);

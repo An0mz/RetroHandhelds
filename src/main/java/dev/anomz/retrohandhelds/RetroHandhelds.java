@@ -7,7 +7,11 @@ import com.mojang.logging.LogUtils;
 import dev.anomz.retrohandhelds.network.AssignRomPayload;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
@@ -16,10 +20,16 @@ public final class RetroHandhelds {
     public static final String MODID = "retrohandhelds";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public RetroHandhelds(IEventBus modEventBus) {
+    public RetroHandhelds(IEventBus modEventBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.SERVER, RetroServerConfig.SPEC);
         RetroRegistries.register(modEventBus);
+        NeoForge.EVENT_BUS.addListener(RetroHandhelds::onLoggedOut);
         modEventBus.addListener(RetroHandhelds::onRegisterPayloads);
         modEventBus.addListener(RetroHandhelds::onBuildCreativeTabs);
+    }
+
+    private static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        AssignRomPayload.forget(event.getEntity());
     }
 
     private static void onRegisterPayloads(RegisterPayloadHandlersEvent event) {
