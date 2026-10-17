@@ -10,6 +10,7 @@ import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.emu.StateResult;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
+import dev.anomz.retrohandhelds.client.input.GamepadInput;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.SessionDisplay;
@@ -50,6 +51,10 @@ public final class EmulatorScreen extends Screen {
     protected void init() {
         addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.power_off"), b -> powerOff())
                 .bounds(width - 74, 4, 70, 20).build());
+        String pad = GamepadInput.connectedName();
+        if (pad != null && status == null) {
+            showStatus(Component.translatable("screen.retrohandhelds.gamepad", pad));
+        }
         // Built here, not per frame; bindings cannot change while this screen is open.
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
@@ -87,6 +92,8 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Polled every frame here: GLFW needs the main thread, and a 20 Hz tick would add input lag.
+        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll() : 0);
         SessionDisplay display = active.display();
         display.update();
         graphics.fill(0, 0, width, height, 0xFF000000);

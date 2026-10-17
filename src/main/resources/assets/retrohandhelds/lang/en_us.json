@@ -51,5 +51,9 @@
   "retrohandhelds.configuration.lcdGhosting": "LCD Ghosting",
   "key.retrohandhelds.fast_forward": "Fast-Forward (hold)",
   "screen.retrohandhelds.fast_forward": ">> %sx",
-  "retrohandhelds.configuration.fastForwardSpeed": "Fast-Forward Speed (2-4x)"
+  "retrohandhelds.configuration.fastForwardSpeed": "Fast-Forward Speed (2-4x)",
+  "screen.retrohandhelds.gamepad": "Gamepad: %s",
+  "retrohandhelds.configuration.gamepadEnabled": "Use Gamepad",
+  "retrohandhelds.configuration.gamepadDeadzone": "Stick Deadzone (%)",
+  "retrohandhelds.configuration.gamepadPositionalAB": "Nintendo A/B Positions"
 }

@@ -26,6 +26,17 @@ public final class RetroClientConfig {
             .comment("How fast the game runs while the Fast-Forward key is held (2-4x).")
             .defineInRange("fastForwardSpeed", 2, 2, 4);
 
+    private static final ModConfigSpec.BooleanValue GAMEPAD_ENABLED = BUILDER
+            .comment("Use a connected gamepad (Xbox, PlayStation, ...) in the emulator screen.")
+            .define("gamepadEnabled", true);
+    private static final ModConfigSpec.IntValue GAMEPAD_DEADZONE = BUILDER
+            .comment("How far (in %) the left stick must move before it counts as a D-pad press.")
+            .defineInRange("gamepadDeadzone", 35, 10, 90);
+    private static final ModConfigSpec.BooleanValue GAMEPAD_POSITIONAL_AB = BUILDER
+            .comment("Use Nintendo button positions: the right face button is A and the bottom one is B.",
+                    "When false, the pad's A/B labels match the game's A/B.")
+            .define("gamepadPositionalAB", false);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private RetroClientConfig() {
@@ -49,6 +60,18 @@ public final class RetroClientConfig {
 
     public static int fastForwardSpeed() {
         return SPEC.isLoaded() ? FAST_FORWARD_SPEED.get() : 2;
+    }
+
+    public static boolean gamepadEnabled() {
+        return !SPEC.isLoaded() || GAMEPAD_ENABLED.get();
+    }
+
+    public static float gamepadDeadzone() {
+        return (SPEC.isLoaded() ? GAMEPAD_DEADZONE.get() : 35) / 100f;
+    }
+
+    public static boolean gamepadPositionalAB() {
+        return SPEC.isLoaded() && GAMEPAD_POSITIONAL_AB.get();
     }
 
     public static void setVolume(int volume) {
