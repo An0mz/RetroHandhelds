@@ -53,6 +53,7 @@ public final class EmulatorSession {
     private volatile State state = State.STARTING;
     private volatile String failure;
     private volatile float volume = 1f;
+    private volatile boolean paused;
     /** Set once the emulator thread can no longer answer state requests. */
     private volatile boolean finished;
     // Kept as fields so the ROM memory stays reachable while the core may still read it.
@@ -112,6 +113,11 @@ public final class EmulatorSession {
 
     public FrameBuffer frames() {
         return frames;
+    }
+
+    /** Freezes emulation and sound while true (Minecraft paused). Safe to call from any thread. */
+    public void setPaused(boolean paused) {
+        this.paused = paused;
     }
 
     /** Gain for the emulator's sound, 0..1. Safe to call from any thread. */
@@ -221,6 +227,19 @@ public final class EmulatorSession {
         long next = System.nanoTime();
         long nextSaveRamCheck = next + SAVE_RAM_CHECK_NANOS;
         while (running) {
+            if (paused) {
+                if (audioOutput != null) {
+                    audioOutput.setPaused(true);
+                }
+                handleStateRequests();
+                LockSupport.parkNanos(periodNanos);
+                // Resume from now, without fast-forwarding through the paused time.
+                next = System.nanoTime();
+                continue;
+            }
+            if (audioOutput != null) {
+                audioOutput.setPaused(false);
+            }
             core.retro_run();
             if (audioOutput != null) {
                 audioOutput.pump(volume);

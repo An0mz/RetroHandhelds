@@ -33,6 +33,7 @@ public final class AudioOutput implements AutoCloseable {
     private final int maxRingBacklog;
     private int freeCount;
     private boolean broken;
+    private boolean paused;
     private long pumps;
     private boolean started;
     private long underruns;
@@ -76,7 +77,7 @@ public final class AudioOutput implements AutoCloseable {
 
     /** Moves finished buffers back to the free list and refills them from the ring. */
     public void pump(float gain) {
-        if (broken) {
+        if (broken || paused) {
             return;
         }
         try {
@@ -133,6 +134,27 @@ public final class AudioOutput implements AutoCloseable {
                 alGetSourcei(source, AL_SOURCE_STATE), alGetSourcei(source, AL_BUFFERS_QUEUED), ring.available(),
                 gain, underruns, droppedSamples * 1000 / 2 / sampleRate);
         return true;
+    }
+
+    /** Pauses or resumes playback where it left off. Queued audio is kept, so resuming is not an underrun. */
+    public void setPaused(boolean paused) {
+        if (broken || this.paused == paused) {
+            return;
+        }
+        this.paused = paused;
+        try {
+            if (ALC10.alcGetCurrentContext() != context) {
+                return;
+            }
+            if (paused) {
+                alSourcePause(source);
+            } else if (alGetSourcei(source, AL_BUFFERS_QUEUED) > 0) {
+                alSourcePlay(source);
+            }
+        } catch (Throwable t) {
+            broken = true;
+            RetroHandhelds.LOGGER.error("Retro Handhelds: could not pause or resume emulator sound", t);
+        }
     }
 
     @Override
