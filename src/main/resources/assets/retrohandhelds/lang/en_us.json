@@ -1,0 +1,13 @@
+{
+  "itemGroup.retrohandhelds": "Example Mod Tab",
+  "block.retrohandhelds.example_block": "Example Block",
+  "item.retrohandhelds.example_item": "Example Item",
+
+  "retrohandhelds.configuration.title": "Retro Handhelds Configs",
+  "retrohandhelds.configuration.section.retrohandhelds.common.toml": "Retro Handhelds Configs",
+  "retrohandhelds.configuration.section.retrohandhelds.common.toml.title": "Retro Handhelds Configs",
+  "retrohandhelds.configuration.items": "Item List",
+  "retrohandhelds.configuration.logDirtBlock": "Log Dirt Block",
+  "retrohandhelds.configuration.magicNumberIntroduction": "Magic Number Text",
+  "retrohandhelds.configuration.magicNumber": "Magic Number"
+}
