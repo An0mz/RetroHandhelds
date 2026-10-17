@@ -59,7 +59,9 @@ public final class RetroHandheldsClient {
     }
 
     private static void onClientTick(ClientTickEvent.Post event) {
-        ConsoleSessions.tick(Minecraft.getInstance());
+        Minecraft minecraft = Minecraft.getInstance();
+        EmulatorKeys.handleInWorld(minecraft);
+        ConsoleSessions.tick(minecraft);
     }
 
     private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {

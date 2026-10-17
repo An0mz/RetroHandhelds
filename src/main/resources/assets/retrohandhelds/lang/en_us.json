@@ -25,5 +25,11 @@
   "message.retrohandhelds.state_saved": "State saved",
   "message.retrohandhelds.state_loaded": "State loaded",
   "message.retrohandhelds.state_missing": "No saved state yet",
-  "message.retrohandhelds.state_failed": "Save state failed (see log)"
+  "message.retrohandhelds.state_failed": "Save state failed (see log)",
+  "key.retrohandhelds.mute": "Mute",
+  "key.retrohandhelds.volume_down": "Volume Down",
+  "key.retrohandhelds.volume_up": "Volume Up",
+  "message.retrohandhelds.muted": "Retro Console muted",
+  "message.retrohandhelds.volume": "Retro Console volume: %s%%",
+  "screen.retrohandhelds.power_off": "Power Off"
 }

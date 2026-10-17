@@ -12,8 +12,9 @@ import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -45,6 +46,8 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     protected void init() {
+        addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.power_off"), b -> powerOff())
+                .bounds(width - 74, 4, 70, 20).build());
         // Built here, not per frame; bindings cannot change while this screen is open.
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
@@ -52,7 +55,11 @@ public final class EmulatorScreen extends Screen {
                 hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
                 Component.empty()
                         .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
-                        .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()));
+                        .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()),
+                Component.empty()
+                        .append("Mute: ").append(EmulatorKeys.MUTE.getTranslatedKeyMessage())
+                        .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
+                        .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage()));
     }
 
     private static Component hint(JoypadButton... buttons) {
@@ -92,6 +99,19 @@ public final class EmulatorScreen extends Screen {
         if (failure != null) {
             graphics.drawCenteredString(font, failure, width / 2, height / 2, 0xFFFF5555);
         }
+        // Draws the widgets (the Power Off button); the background is ours, see renderBackground.
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Nothing: render() fills black and draws the game instead of Minecraft's blurred menu background.
+    }
+
+    /** Shuts the console down (the cartridge stays in) and goes back to the world. */
+    private void powerOff() {
+        ConsoleSessions.stop(active);
+        onClose();
     }
 
     private void renderHint(GuiGraphics graphics) {
@@ -121,6 +141,18 @@ public final class EmulatorScreen extends Screen {
         }
         if (matches(EmulatorKeys.LOAD_STATE, keyCode, scanCode)) {
             session.loadState().thenAccept(this::showStateResult);
+            return true;
+        }
+        if (matches(EmulatorKeys.MUTE, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.toggleMute());
+            return true;
+        }
+        if (matches(EmulatorKeys.VOLUME_DOWN, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.changeVolume(-1));
+            return true;
+        }
+        if (matches(EmulatorKeys.VOLUME_UP, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.changeVolume(1));
             return true;
         }
         if (keyCode != GLFW.GLFW_KEY_ESCAPE && setButtons(keyCode, scanCode, true)) {
@@ -156,10 +188,12 @@ public final class EmulatorScreen extends Screen {
             case NO_STATE -> "message.retrohandhelds.state_missing";
             case FAILED -> "message.retrohandhelds.state_failed";
         };
-        minecraft.execute(() -> {
-            status = Component.translatable(key);
-            statusAtMs = Util.getMillis();
-        });
+        minecraft.execute(() -> showStatus(Component.translatable(key)));
+    }
+
+    private void showStatus(Component message) {
+        status = message;
+        statusAtMs = Util.getMillis();
     }
 
     private boolean setButtons(int keyCode, int scanCode, boolean down) {

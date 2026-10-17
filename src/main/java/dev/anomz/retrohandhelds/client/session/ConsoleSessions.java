@@ -32,6 +32,11 @@ public final class ConsoleSessions {
     private static final double SOUND_RANGE = 16;
     /** Walking further away than this switches the console off. */
     private static final double STOP_RANGE = 48;
+    private static final int VOLUME_STEPS = 10;
+
+    /** Player's own volume for the emulator, 0..VOLUME_STEPS, on top of the Jukebox/Note Blocks slider. */
+    private static int volumeLevel = VOLUME_STEPS;
+    private static boolean muted;
 
     public record Active(EmulatorSession session, SessionDisplay display, @Nullable BlockPos pos,
             @Nullable CartridgeData cartridge, String romFile) {
@@ -109,6 +114,28 @@ public final class ConsoleSessions {
         }
     }
 
+    public static boolean isRunning() {
+        return active != null;
+    }
+
+    public static Component toggleMute() {
+        muted = !muted;
+        return volumeMessage();
+    }
+
+    /** Changes the volume by whole steps of 10%; also unmutes. */
+    public static Component changeVolume(int steps) {
+        volumeLevel = Math.clamp(volumeLevel + steps, 0, VOLUME_STEPS);
+        muted = false;
+        return volumeMessage();
+    }
+
+    private static Component volumeMessage() {
+        return muted
+                ? Component.translatable("message.retrohandhelds.muted")
+                : Component.translatable("message.retrohandhelds.volume", volumeLevel * 100 / VOLUME_STEPS);
+    }
+
     @Nullable
     public static SessionDisplay displayAt(BlockPos pos) {
         Active current = active;
@@ -143,6 +170,7 @@ public final class ConsoleSessions {
                 volume *= (float) Math.max(0, 1 - distance / SOUND_RANGE);
             }
         }
-        current.session().setVolume(volume);
+        float playerVolume = muted ? 0 : volumeLevel / (float) VOLUME_STEPS;
+        current.session().setVolume(volume * playerVolume);
     }
 }
