@@ -1,8 +1,9 @@
 package dev.anomz.retrohandhelds.client;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
-import dev.anomz.retrohandhelds.client.command.TestCommand;
+import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
+import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -19,6 +20,7 @@ import net.neoforged.neoforge.event.GameShuttingDownEvent;
 public final class RetroHandheldsClient {
     public RetroHandheldsClient(IEventBus modEventBus) {
         modEventBus.addListener(RetroHandheldsClient::onClientSetup);
+        modEventBus.addListener(JoypadButton::registerAll);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRegisterClientCommands);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onShutdown);
     }
@@ -28,7 +30,7 @@ public final class RetroHandheldsClient {
     }
 
     private static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
-        TestCommand.register(event.getDispatcher());
+        RetroHandheldsCommand.register(event.getDispatcher());
     }
 
     private static void onShutdown(GameShuttingDownEvent event) {

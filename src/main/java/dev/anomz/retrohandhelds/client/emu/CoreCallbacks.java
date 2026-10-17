@@ -22,20 +22,22 @@ final class CoreCallbacks {
     final MgbaCore.AudioSampleCallback audioSample = (left, right) -> {
     };
     final MgbaCore.AudioSampleBatchCallback audioSampleBatch = (data, frames) -> frames;
-    final MgbaCore.InputPollCallback inputPoll = () -> {
-    };
-    final MgbaCore.InputStateCallback inputState = (port, device, index, id) -> 0;
+    final MgbaCore.InputPollCallback inputPoll = this::inputPoll;
+    final MgbaCore.InputStateCallback inputState = this::inputState;
 
     private final FrameBuffer frames;
+    private final JoypadState joypad;
     private final Memory systemDir;
     private final Memory saveDir;
     private final int[] row32 = new int[FrameBuffer.WIDTH];
     private final short[] row16 = new short[FrameBuffer.WIDTH];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
+    private int polledButtons;
     private boolean errorLogged;
 
-    CoreCallbacks(FrameBuffer frames, Path systemDir, Path saveDir) {
+    CoreCallbacks(FrameBuffer frames, JoypadState joypad, Path systemDir, Path saveDir) {
         this.frames = frames;
+        this.joypad = joypad;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
     }
@@ -102,6 +104,21 @@ final class CoreCallbacks {
         } catch (Throwable t) {
             logOnce("video refresh", t);
         }
+    }
+
+    // One snapshot per frame, so every input_state call within retro_run sees the same buttons.
+    private void inputPoll() {
+        polledButtons = joypad.snapshot();
+    }
+
+    private short inputState(int port, int device, int index, int id) {
+        if (port != 0 || device != DEVICE_JOYPAD || index != 0) {
+            return 0;
+        }
+        if (id == DEVICE_ID_JOYPAD_MASK) {
+            return (short) polledButtons;
+        }
+        return (short) (id >= 0 && id < 16 ? polledButtons >> id & 1 : 0);
     }
 
     static int xrgb8888ToAbgr(int p) {

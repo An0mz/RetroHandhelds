@@ -1,2 +1,13 @@
 {
+  "key.categories.retrohandhelds": "Retro Handhelds",
+  "key.retrohandhelds.up": "D-Pad Up",
+  "key.retrohandhelds.down": "D-Pad Down",
+  "key.retrohandhelds.left": "D-Pad Left",
+  "key.retrohandhelds.right": "D-Pad Right",
+  "key.retrohandhelds.a": "A Button",
+  "key.retrohandhelds.b": "B Button",
+  "key.retrohandhelds.l": "L Button",
+  "key.retrohandhelds.r": "R Button",
+  "key.retrohandhelds.start": "Start",
+  "key.retrohandhelds.select": "Select"
 }

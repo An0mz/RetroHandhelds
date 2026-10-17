@@ -29,6 +29,19 @@ public final class FrameBuffer {
         }
     }
 
+    /**
+     * Copies the latest frame into {@code dst} only if it is newer than {@code lastSeen}.
+     * Returns the current frame count either way.
+     */
+    public long copyIfNewer(int[] dst, long lastSeen) {
+        synchronized (lock) {
+            if (frameCount != lastSeen) {
+                System.arraycopy(front, 0, dst, 0, PIXELS);
+            }
+            return frameCount;
+        }
+    }
+
     /** Copies the latest frame into {@code dst} and returns how many frames were published so far. */
     public long copyLatest(int[] dst) {
         synchronized (lock) {

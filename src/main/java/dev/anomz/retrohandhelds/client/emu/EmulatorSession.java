@@ -29,6 +29,7 @@ public final class EmulatorSession {
     private final MgbaCore core;
     private final Path rom;
     private final FrameBuffer frames = new FrameBuffer();
+    private final JoypadState joypad = new JoypadState();
     private final CoreCallbacks callbacks;
     private final Thread thread;
     private volatile boolean running = true;
@@ -41,7 +42,7 @@ public final class EmulatorSession {
     private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir) {
         this.core = core;
         this.rom = rom;
-        this.callbacks = new CoreCallbacks(frames, systemDir, saveDir);
+        this.callbacks = new CoreCallbacks(frames, joypad, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
     }
@@ -82,6 +83,10 @@ public final class EmulatorSession {
 
     public FrameBuffer frames() {
         return frames;
+    }
+
+    public JoypadState joypad() {
+        return joypad;
     }
 
     public State state() {
