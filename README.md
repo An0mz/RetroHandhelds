@@ -10,6 +10,8 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 
 - **Retro Console** block: insert a cartridge, power it on, and the game shows live on the block's screen, with sound that fades with distance.
 - **Retro Handheld** item: carry a game with you. Held in your hands it shows like a map, with the game playing on its screen.
+- **Retro TV** block: place it next to a running console to show the game on it. TVs in a rectangle join into one big screen.
+- Play full screen, or switch to the in-world view and watch the game on the console, TV or handheld while you play.
 - **Cartridges** remember which ROM they play and keep their own saves, so a game continues across consoles and handhelds.
 - In-game saves (battery save RAM) are written automatically, plus a save-state slot per cartridge.
 - Sound through Minecraft's audio, with its own volume and mute keys.
@@ -32,7 +34,12 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 4. Play it:
    - **Console:** place a Retro Console, right-click it with the cartridge to insert, then right-click with an empty hand to power on. Sneak + right-click with an empty hand ejects the cartridge.
    - **Handheld:** in your inventory, right-click the cartridge onto the Retro Handheld (right-click the handheld with an empty cursor to take it out), then right-click with the handheld in hand.
-5. Press **Esc** to go back to Minecraft. The game keeps running on the console or the handheld; right-click again to pick it back up. The **Power Off** button in the corner shuts it down.
+5. Press **V** to switch between full screen and the in-world view, where you watch the game on the console or the handheld while your controls still go to the game.
+6. Press **Esc** to go back to Minecraft. The game keeps running on the console or the handheld; right-click again to pick it back up. The **Power Off** button in the corner shuts it down.
+
+### Retro TV
+
+Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 8x8) and they act as one big screen; one of them has to touch the console.
 
 ROMs never leave your computer: a cartridge only stores the ROM's file name. In multiplayer, each player needs the ROM in their own `roms` folder.
 
@@ -43,6 +50,7 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 | Retro Console | 7 iron ingots around a glass pane, redstone at the bottom center (`III / IGI / IRI`) |
 | Retro Handheld | `IGI / RIR` (iron ingot, glass pane, redstone) |
 | Cartridge | Shapeless: iron ingot + redstone + paper |
+| Retro TV (x2) | `IGI / GRG / IGI` (iron ingot, glass pane, redstone) |
 
 ## Controls
 
@@ -55,6 +63,7 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 | L / R | A / S | Bumpers or triggers |
 | Start / Select | Enter / Backspace | Start / Back (Options / Share) |
 | Fast-forward (hold) | Tab | |
+| Full screen / in-world view | V | |
 | Save / load state | F5 / F9 | |
 | Mute, volume down/up | M, -, = (also in the world) | |
 | Back to Minecraft | Esc | |
@@ -84,6 +93,7 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 | `muted` | false | |
 | `colorCorrection` | false | Colors like a real GBA screen |
 | `lcdGhosting` | false | Frame blending like the original LCD |
+| `inWorldView` | false | Open games in the in-world view |
 | `fastForwardSpeed` | 2 | 2-4x |
 | `gamepadEnabled` | true | |
 | `gamepadDeadzone` | 35 | Left stick deadzone, in % |
