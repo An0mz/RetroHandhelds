@@ -7,6 +7,8 @@ import dev.anomz.retrohandhelds.block.TvBlockEntity;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.CartridgeItem;
 import dev.anomz.retrohandhelds.item.HandheldItem;
+import dev.anomz.retrohandhelds.item.RemoteItem;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -39,6 +41,8 @@ public final class RetroRegistries {
             () -> new CartridgeItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<HandheldItem> HANDHELD = ITEMS.register("handheld",
             () -> new HandheldItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<RemoteItem> REMOTE = ITEMS.register("remote",
+            () -> new RemoteItem(new Item.Properties().stacksTo(1)));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ConsoleBlockEntity>> CONSOLE_BLOCK_ENTITY =
             BLOCK_ENTITY_TYPES.register("console",
@@ -50,6 +54,10 @@ public final class RetroRegistries {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CartridgeData>> CARTRIDGE_DATA =
             DATA_COMPONENTS.registerComponentType("cartridge",
                     builder -> builder.persistent(CartridgeData.CODEC).networkSynchronized(CartridgeData.STREAM_CODEC));
+    /** The console a remote plays. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<GlobalPos>> REMOTE_LINK =
+            DATA_COMPONENTS.registerComponentType("remote_link",
+                    builder -> builder.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC));
 
     private RetroRegistries() {
     }

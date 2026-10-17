@@ -11,7 +11,8 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 - **Retro Console** block: insert a cartridge, power it on, and the game shows live on the block's screen, with sound that fades with distance.
 - **Retro Handheld** item: carry a game with you. Held in your hands it shows like a map, with the game playing on its screen.
 - **Retro TV** block: place it next to a running console to show the game on it. TVs in a rectangle join into one big screen.
-- Play full screen, or switch to the in-world view and watch the game on the console, TV or handheld while you play.
+- **Retro Remote** item: link it to a console and play from across the room.
+- Play full screen, or switch to the in-world view and watch the game on the console, TV or handheld while you play, with the HUD hidden.
 - **Cartridges** remember which ROM they play and keep their own saves, so a game continues across consoles and handhelds.
 - In-game saves (battery save RAM) are written automatically, plus a save-state slot per cartridge.
 - Sound through Minecraft's audio, with its own volume and mute keys.
@@ -40,7 +41,11 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 
 ### Retro TV
 
-Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 16x16) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen. Right-click the screen with an empty hand to play, just like the console.
+Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 16x16) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen. Right-click the screen with an empty hand to play, just like the console. While a TV shows the game, the console's own screen just says "Playing on TV".
+
+### Retro Remote
+
+Sneak + right-click a console, or a TV screen connected to one, to link the remote. Then right-click with the remote anywhere within 48 blocks of the console to play it.
 
 ROMs never leave your computer: a cartridge only stores the ROM's file name. In multiplayer, each player needs the ROM in their own `roms` folder.
 
@@ -52,6 +57,7 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 | Retro Handheld | `IGI / RIR` (iron ingot, glass pane, redstone) |
 | Cartridge | Shapeless: iron ingot + redstone + paper |
 | Retro TV (x2) | `IGI / GRG / IGI` (iron ingot, glass pane, redstone) |
+| Retro Remote | ` T / IBI / I ` (redstone torch, iron ingot, any button) |
 
 ## Multiplayer
 

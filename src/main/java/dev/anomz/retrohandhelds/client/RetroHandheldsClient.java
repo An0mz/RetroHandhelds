@@ -1,5 +1,7 @@
 package dev.anomz.retrohandhelds.client;
 
+import org.jetbrains.annotations.Nullable;
+
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.RetroServerConfig;
@@ -25,14 +27,18 @@ import dev.anomz.retrohandhelds.client.share.RemoteScreens;
 import dev.anomz.retrohandhelds.client.share.ScreenBroadcaster;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
+import dev.anomz.retrohandhelds.item.RemoteItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -40,13 +46,13 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
@@ -74,7 +80,8 @@ public final class RetroHandheldsClient {
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRightClickItem);
         NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onShutdown);
         NeoForge.EVENT_BUS.addListener(HandheldInHandRenderer::onRenderHand);
-        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderGuiLayer);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderGui);
+        NeoForge.EVENT_BUS.addListener(RetroHandheldsClient::onRenderHandHidden);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -122,17 +129,22 @@ public final class RetroHandheldsClient {
     }
 
     /**
-     * Empty hand on a console, or on a TV screen touching one, powers it on. Inserting and ejecting
-     * are handled by the block on the server.
+     * Empty hand (or a remote) on a console, or on a TV screen touching one, powers it on.
+     * Inserting and ejecting are handled by the block on the server.
      */
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         Player player = event.getEntity();
+        ItemStack held = player.getMainHandItem();
         if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
-                || !player.getMainHandItem().isEmpty() || player.isShiftKeyDown()) {
+                || !(held.isEmpty() || held.is(RetroRegistries.REMOTE)) || player.isShiftKeyDown()) {
             return;
         }
         BlockPos pos = event.getPos();
         if (event.getLevel().getBlockEntity(pos) instanceof TvBlockEntity tv) {
+            if (!held.isEmpty()) {
+                // The TV doesn't take the click, so the remote's own right-click handles it.
+                return;
+            }
             TvLayout layout = tv.layout(event.getLevel().getGameTime());
             BlockPos found = layout.tooBig() ? null : layout.findConsole(event.getLevel());
             if (found == null) {
@@ -141,7 +153,14 @@ public final class RetroHandheldsClient {
             }
             pos = found;
         }
-        if (!(event.getLevel().getBlockEntity(pos) instanceof ConsoleBlockEntity console)) {
+        if (event.getLevel().getBlockEntity(pos) instanceof ConsoleBlockEntity) {
+            powerOnConsole(player, event.getLevel(), pos);
+        }
+    }
+
+    private static void powerOnConsole(Player player, Level level, BlockPos pos) {
+        if (!(level.getBlockEntity(pos) instanceof ConsoleBlockEntity console)) {
+            player.displayClientMessage(Component.translatable("message.retrohandhelds.remote_lost"), true);
             return;
         }
         if (!RetroServerConfig.consolesEnabled()) {
@@ -161,27 +180,54 @@ public final class RetroHandheldsClient {
             return;
         }
         ItemStack stack = event.getItemStack();
+        Player player = event.getEntity();
         if (stack.is(RetroRegistries.CARTRIDGE)) {
             Minecraft.getInstance().setScreen(new RomPickerScreen(event.getHand()));
         } else if (stack.is(RetroRegistries.HANDHELD)) {
             HandheldInHandRenderer.noteUsed(event.getHand(), event.getLevel().getGameTime());
             CartridgeData cartridge = HandheldItem.cartridgeData(stack);
             if (!RetroServerConfig.handheldsEnabled()) {
-                event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handhelds_disabled"), true);
+                player.displayClientMessage(Component.translatable("message.retrohandhelds.handhelds_disabled"), true);
             } else if (cartridge == null) {
-                event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handheld_empty"), true);
+                player.displayClientMessage(Component.translatable("message.retrohandhelds.handheld_empty"), true);
             } else {
                 ConsoleSessions.powerOnHandheld(cartridge);
             }
+        } else if (stack.is(RetroRegistries.REMOTE) && !player.isSecondaryUseActive()) {
+            useRemote(player, event.getLevel(), RemoteItem.link(stack));
         }
     }
 
-    /** No crosshair while watching the game in the world: the mouse doesn't aim then. */
-    private static void onRenderGuiLayer(RenderGuiLayerEvent.Pre event) {
-        if (event.getName().equals(VanillaGuiLayers.CROSSHAIR)
-                && Minecraft.getInstance().screen instanceof EmulatorScreen screen && screen.inWorldView()) {
+    private static void useRemote(Player player, Level level, @Nullable GlobalPos link) {
+        if (link == null) {
+            player.displayClientMessage(Component.translatable("item.retrohandhelds.remote.unlinked"), true);
+        } else if (!link.dimension().equals(level.dimension())
+                || player.distanceToSqr(Vec3.atCenterOf(link.pos())) > ConsoleSessions.STOP_RANGE * ConsoleSessions.STOP_RANGE
+                || !level.isLoaded(link.pos())) {
+            player.displayClientMessage(Component.translatable("message.retrohandhelds.remote_too_far"), true);
+        } else {
+            powerOnConsole(player, level, link.pos());
+        }
+    }
+
+    /** While the game is watched in the world, hide the HUD (like F1) so nothing covers it. */
+    private static void onRenderGui(RenderGuiEvent.Pre event) {
+        if (worldView() != null) {
             event.setCanceled(true);
         }
+    }
+
+    /** No empty hand in front of a console or TV being watched; a handheld is still drawn (it has the game). */
+    private static void onRenderHandHidden(RenderHandEvent event) {
+        EmulatorScreen screen = worldView();
+        if (screen != null && !screen.showsHandheld()) {
+            event.setCanceled(true);
+        }
+    }
+
+    @Nullable
+    private static EmulatorScreen worldView() {
+        return Minecraft.getInstance().screen instanceof EmulatorScreen screen && screen.inWorldView() ? screen : null;
     }
 
     private static void onShutdown(GameShuttingDownEvent event) {

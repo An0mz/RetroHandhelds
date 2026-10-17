@@ -37,8 +37,8 @@ public final class ConsoleSessions {
     private static final double FULL_VOLUME_RANGE = 4;
     /** Beyond full volume range, sound fades out linearly to silence at this distance. */
     private static final double SOUND_RANGE = 32;
-    /** Walking further away than this switches the console off. */
-    private static final double STOP_RANGE = 48;
+    /** Walking further away than this switches the console off; also how far a remote reaches. */
+    public static final double STOP_RANGE = 48;
 
     /**
      * @param pos the console block, or null for a handheld or the play command

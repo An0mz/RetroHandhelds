@@ -273,6 +273,11 @@ public final class EmulatorScreen extends Screen {
         return active == session;
     }
 
+    /** Whether this screen plays a handheld (drawn in the player's hands in the in-world view). */
+    public boolean showsHandheld() {
+        return active.handheld();
+    }
+
     /** Whether the game is watched in the world rather than full screen. */
     public boolean inWorldView() {
         return inWorldView;
