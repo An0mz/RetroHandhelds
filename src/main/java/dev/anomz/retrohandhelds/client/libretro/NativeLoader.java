@@ -26,9 +26,22 @@ public final class NativeLoader {
 
     public static synchronized Optional<MgbaCore> load() {
         if (cached == null) {
+            long start = System.nanoTime();
             cached = Optional.ofNullable(tryLoad());
+            RetroHandhelds.LOGGER.info("Retro Handhelds: native core load took {} ms", (System.nanoTime() - start) / 1_000_000);
         }
         return cached;
+    }
+
+    /**
+     * Loads the core on a background thread during startup. Reading the library from the jar and
+     * loading it takes long enough to freeze the game for a moment if it first happens on a click.
+     * A click while this is still running simply waits for it ({@link #load} is synchronized).
+     */
+    public static void preloadAsync() {
+        Thread thread = new Thread(NativeLoader::load, "RetroHandhelds-CoreLoader");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private static MgbaCore tryLoad() {

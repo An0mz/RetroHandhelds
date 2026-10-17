@@ -7,6 +7,8 @@ import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.client.command.RetroHandheldsCommand;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
+import dev.anomz.retrohandhelds.client.input.GamepadInput;
+import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
 import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
@@ -59,6 +61,9 @@ public final class RetroHandheldsClient {
 
     private static void onClientSetup(FMLClientSetupEvent event) {
         RetroPaths.roms();
+        NativeLoader.preloadAsync();
+        // GLFW joystick calls must run on the main thread; enqueued work runs there during loading.
+        event.enqueueWork(GamepadInput::warmUp);
     }
 
     private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {

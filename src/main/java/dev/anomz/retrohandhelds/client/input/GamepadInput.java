@@ -61,6 +61,21 @@ public final class GamepadInput {
         }
     }
 
+    /**
+     * The first joystick query in a process makes GLFW enumerate input devices, which can take seconds
+     * on Windows. Doing it here, on the main thread during the loading screen, keeps that pause out of
+     * the game. Skipped when gamepads are disabled.
+     */
+    public static void warmUp() {
+        if (!RetroClientConfig.gamepadEnabled()) {
+            return;
+        }
+        long start = System.nanoTime();
+        String name = connectedName();
+        RetroHandhelds.LOGGER.info("Retro Handhelds: gamepad detection took {} ms ({})",
+                (System.nanoTime() - start) / 1_000_000, name == null ? "no gamepad connected" : name);
+    }
+
     /** Name of the gamepad that would be used, or null if none is connected (or gamepads are disabled). */
     @Nullable
     public static String connectedName() {
