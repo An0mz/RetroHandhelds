@@ -114,6 +114,7 @@ public final class RetroHandheldsClient {
         if (stack.is(RetroRegistries.CARTRIDGE)) {
             Minecraft.getInstance().setScreen(new RomPickerScreen(event.getHand()));
         } else if (stack.is(RetroRegistries.HANDHELD)) {
+            HandheldInHandRenderer.noteUsed(event.getHand(), event.getLevel().getGameTime());
             CartridgeData cartridge = HandheldItem.cartridgeData(stack);
             if (!RetroServerConfig.handheldsEnabled()) {
                 event.getEntity().displayClientMessage(Component.translatable("message.retrohandhelds.handhelds_disabled"), true);

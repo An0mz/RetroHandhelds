@@ -48,7 +48,22 @@ public final class HandheldInHandRenderer {
     // In map space negative z faces the viewer; the screen sits just in front of the face.
     private static final float SCREEN_Z = -0.1f;
 
+    /** How long after a right-click Minecraft's "item used" dip is ignored (it settles in about 3 ticks). */
+    private static final long USE_DIP_TICKS = 10;
+
+    private static InteractionHand usedHand;
+    private static long usedAt = Long.MIN_VALUE;
+
     private HandheldInHandRenderer() {
+    }
+
+    /**
+     * Minecraft lowers and re-raises an item after every use. That suits maps but not a handheld
+     * the player just turned on, so the next few ticks ignore it (switching to the item still animates).
+     */
+    public static void noteUsed(InteractionHand hand, long gameTime) {
+        usedHand = hand;
+        usedAt = gameTime;
     }
 
     public static void onRenderHand(RenderHandEvent event) {
@@ -63,14 +78,16 @@ public final class HandheldInHandRenderer {
         MultiBufferSource buffers = event.getMultiBufferSource();
         int light = event.getPackedLight();
         boolean mainHand = event.getHand() == InteractionHand.MAIN_HAND;
+        long now = minecraft.level == null ? 0 : minecraft.level.getGameTime();
+        float equipProgress = event.getHand() == usedHand && now - usedAt < USE_DIP_TICKS ? 0 : event.getEquipProgress();
         HumanoidArm arm = mainHand ? player.getMainArm() : player.getMainArm().getOpposite();
 
         poseStack.pushPose();
         if (mainHand && player.getOffhandItem().isEmpty()) {
             renderTwoHanded(minecraft, player, poseStack, buffers, light, event.getInterpolatedPitch(),
-                    event.getEquipProgress(), event.getSwingProgress(), stack);
+                    equipProgress, event.getSwingProgress(), stack);
         } else {
-            renderOneHanded(minecraft, player, poseStack, buffers, light, event.getEquipProgress(), arm,
+            renderOneHanded(minecraft, player, poseStack, buffers, light, equipProgress, arm,
                     event.getSwingProgress(), stack);
         }
         poseStack.popPose();

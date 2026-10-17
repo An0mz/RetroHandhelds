@@ -75,9 +75,10 @@ public class HandheldItem extends Item {
         return true;
     }
 
+    /** Consume rather than success: same handling, but without the arm swing. */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
+        return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
 
     @Override
