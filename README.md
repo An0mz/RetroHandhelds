@@ -18,7 +18,7 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
 - Also runs Game Boy and Game Boy Color games.
-- Multiplayer: players near a console see the game being played on it and on its TVs.
+- Multiplayer: players near a console see and hear the game being played on it, on its TVs too.
 - Server-friendly: all emulation runs on each player's own computer; the server only forwards compressed pictures, within limits the owner sets.
 
 ## Requirements
@@ -55,7 +55,7 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 
 ## Multiplayer
 
-When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; nothing is sent when nobody is near. Sound and other players' handhelds are not shared yet.
+When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it, and hear it coming from the console: full volume within 4 blocks, fading out by 32. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; sound is sent as compressed mono (about 11 KB/s). Nothing is sent when nobody is near. Other players' handhelds are not shared yet.
 
 Each player who wants to *play* a cartridge needs that ROM in their own `roms` folder.
 
