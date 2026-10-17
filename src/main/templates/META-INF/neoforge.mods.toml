@@ -15,7 +15,7 @@ loaderVersion="${loader_version_range}" #mandatory
 license="${mod_license}"
 
 # A URL to refer people to when problems occur with this mod
-#issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
+issueTrackerURL="https://github.com/An0mz/RetroHandhelds/issues" #optional
 
 # A list of mods - how many allowed here is determined by the individual mod loader
 [[mods]] #mandatory
@@ -33,21 +33,22 @@ displayName="${mod_name}" #mandatory
 #updateJSONURL="https://change.me.example.invalid/updates.json" #optional
 
 # A URL for the "homepage" for this mod, displayed in the mod UI
-#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional
+displayURL="https://github.com/An0mz/RetroHandhelds" #optional
 
 # A file name (in the root of the mod JAR) containing a logo for display
-#logoFile="examplemod.png" #optional
+logoFile="retrohandhelds_logo.png" #optional
 
 # A text field displayed in the mod UI
 credits="Emulation by mGBA (https://github.com/mgba-emu/mgba), MPL 2.0" #optional
 
 # The authors of the mod, displayed in the mod UI (optional)
-#authors=""
+authors="Anomz"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Play your own GBA ROMs inside Minecraft, powered by the mGBA libretro core.
-No ROMs or BIOS files are included: bring your own.
+Play your own GBA games inside Minecraft: on a console block, on a handheld you carry, or full screen.
+Cartridges keep their own saves, with sound, gamepad support and save states.
+Powered by mGBA. No games or BIOS files are included: bring your own.
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
