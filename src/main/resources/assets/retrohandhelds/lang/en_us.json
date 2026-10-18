@@ -25,6 +25,7 @@
   "message.retrohandhelds.core_missing": "The emulator core could not be loaded. See the game log.",
   "message.retrohandhelds.dvd_game": "%s isn't a disc this mod recognises (PS1 or PS2)",
   "message.retrohandhelds.bios_missing": "PS2 games need your own PS2 BIOS in retro_handhelds/system/%s",
+  "message.retrohandhelds.tv_shape": "These TVs aren't one screen: make a filled rectangle, up to %1$sx%1$s",
   "message.retrohandhelds.no_console": "This screen isn't connected to a Retro Console",
   "message.retrohandhelds.busy": "Another emulator session is already running",
   "key.retrohandhelds.save_state": "Save State",

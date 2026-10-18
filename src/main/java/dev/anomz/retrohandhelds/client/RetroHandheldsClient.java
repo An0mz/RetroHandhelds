@@ -148,7 +148,11 @@ public final class RetroHandheldsClient {
                 return;
             }
             TvLayout layout = tv.layout(event.getLevel().getGameTime());
-            BlockPos found = layout.tooBig() ? null : layout.findConsole(event.getLevel());
+            if (layout.invalid()) {
+                player.displayClientMessage(Component.translatable("message.retrohandhelds.tv_shape", TvLayout.MAX_SIZE), true);
+                return;
+            }
+            BlockPos found = layout.findConsole(event.getLevel());
             if (found == null) {
                 player.displayClientMessage(Component.translatable("message.retrohandhelds.no_console"), true);
                 return;
