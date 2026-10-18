@@ -19,6 +19,7 @@
   "message.retrohandhelds.no_cartridge": "Insert a cartridge first",
   "message.retrohandhelds.rom_missing": "You don't have %s in your ROM folder",
   "message.retrohandhelds.core_missing": "The emulator core could not be loaded. See the game log.",
+  "message.retrohandhelds.tv_shape": "These TVs aren't one screen: make a filled rectangle, up to %1$sx%1$s",
   "message.retrohandhelds.no_console": "This screen isn't connected to a Retro Console",
   "message.retrohandhelds.busy": "Another emulator session is already running",
   "key.retrohandhelds.save_state": "Save State",

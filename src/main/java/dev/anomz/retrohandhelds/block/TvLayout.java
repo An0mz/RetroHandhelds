@@ -1,6 +1,10 @@
 package dev.anomz.retrohandhelds.block;
 
+import java.util.ArrayDeque;
+
 import org.jetbrains.annotations.Nullable;
+
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,31 +14,58 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Where one TV sits in its screen: a filled rectangle of TVs facing the same way, seen from the
- * front. {@code col} counts from the viewer's left, {@code row} from the bottom. A wall bigger than
- * {@link #MAX_SIZE} on a side is {@code tooBig} and shows nothing: each TV would only see part of it.
+ * Where one TV sits in its screen, seen from the front: {@code col} counts from the viewer's left,
+ * {@code row} from the bottom. A screen is a whole group of touching TVs facing the same way that
+ * fills a rectangle of at most {@link #MAX_SIZE} a side. Every TV of the group works out the same
+ * screen, so their slices of the picture line up. Any other group (a cross, an L, one with a gap,
+ * or too big) is {@code invalid} and shows nothing: there is no single picture it could show.
  */
-public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int col, int row, boolean tooBig) {
+public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int col, int row, boolean invalid) {
     /** Biggest screen in blocks per side; also bounds the work done per check. */
     public static final int MAX_SIZE = 16;
+    private static final int MAX_CELLS = MAX_SIZE * MAX_SIZE;
     private static final Direction[] DIRECTIONS = Direction.values();
 
-    /** The screen {@code pos} belongs to; a single 1x1 screen if its neighbours don't form a filled rectangle. */
+    /** The screen {@code pos} belongs to. */
     public static TvLayout of(BlockGetter level, BlockPos pos, Direction facing) {
         // The viewer stands in front of the TV, looking at it; their right is the TV's counter-clockwise side.
         Direction right = facing.getCounterClockWise();
-        int left = extent(level, pos, right.getOpposite(), facing);
-        int toRight = extent(level, pos, right, facing);
-        int down = extent(level, pos, Direction.DOWN, facing);
-        int up = extent(level, pos, Direction.UP, facing);
-        int cols = left + toRight + 1;
-        int rows = down + up + 1;
-        BlockPos origin = pos.relative(right, -left).below(down);
-        if (cols > MAX_SIZE || rows > MAX_SIZE) {
-            return new TvLayout(origin, right, Math.min(cols, MAX_SIZE), Math.min(rows, MAX_SIZE), left, down, true);
+        Direction[] plane = { right, right.getOpposite(), Direction.UP, Direction.DOWN };
+        // Walk the whole group, in screen coordinates relative to pos.
+        LongOpenHashSet seen = new LongOpenHashSet();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        seen.add(pos.asLong());
+        queue.add(pos);
+        int minCol = 0;
+        int maxCol = 0;
+        int minRow = 0;
+        int maxRow = 0;
+        while (!queue.isEmpty()) {
+            BlockPos cell = queue.poll();
+            int c = (cell.getX() - pos.getX()) * right.getStepX() + (cell.getZ() - pos.getZ()) * right.getStepZ();
+            int r = cell.getY() - pos.getY();
+            minCol = Math.min(minCol, c);
+            maxCol = Math.max(maxCol, c);
+            minRow = Math.min(minRow, r);
+            maxRow = Math.max(maxRow, r);
+            for (Direction step : plane) {
+                BlockPos next = cell.relative(step);
+                if (!seen.contains(next.asLong()) && isTv(level.getBlockState(next), facing)) {
+                    if (seen.size() >= MAX_CELLS) {
+                        return new TvLayout(pos, right, 1, 1, 0, 0, true);
+                    }
+                    seen.add(next.asLong());
+                    queue.add(next);
+                }
+            }
         }
-        TvLayout layout = new TvLayout(origin, right, cols, rows, left, down, false);
-        return layout.isFilled(level, facing) ? layout : new TvLayout(pos, right, 1, 1, 0, 0, false);
+        int cols = maxCol - minCol + 1;
+        int rows = maxRow - minRow + 1;
+        // Every cell of the bounding box was reached, so the group is a filled rectangle.
+        boolean rectangle = seen.size() == cols * rows;
+        BlockPos origin = pos.relative(right, minCol).above(minRow);
+        return new TvLayout(origin, right, cols, rows, -minCol, -minRow,
+                !rectangle || cols > MAX_SIZE || rows > MAX_SIZE);
     }
 
     /**
@@ -48,7 +79,7 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
             if (state.getBlock() instanceof TvBlock) {
                 Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
                 TvLayout layout = of(level, pos, facing);
-                if (!layout.tooBig()) {
+                if (!layout.invalid()) {
                     return layout.frontCenter(facing);
                 }
             }
@@ -105,25 +136,7 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
         return origin.relative(right, c).above(r);
     }
 
-    private boolean isFilled(BlockGetter level, Direction facing) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (!isTv(level.getBlockState(cell(c, r)), facing)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
 
-    /** TVs in a row from {@code pos}; stops one past {@link #MAX_SIZE} so too-big walls can be told apart. */
-    private static int extent(BlockGetter level, BlockPos pos, Direction step, Direction facing) {
-        int n = 0;
-        while (n < MAX_SIZE && isTv(level.getBlockState(pos.relative(step, n + 1)), facing)) {
-            n++;
-        }
-        return n;
-    }
 
     private static boolean isTv(BlockState state, Direction facing) {
         return state.getBlock() instanceof TvBlock && state.getValue(HorizontalDirectionalBlock.FACING) == facing;
