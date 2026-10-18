@@ -15,7 +15,7 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 - Play full screen, or switch to the in-world view and watch the game on the console, TV or handheld while you play, with the HUD hidden.
 - **Cartridges** remember which ROM they play and keep their own saves, so a game continues across consoles and handhelds.
 - In-game saves (battery save RAM) are written automatically, plus a save-state slot per cartridge.
-- Sound through Minecraft's audio, with its own volume and mute keys.
+- Sound through Minecraft's audio, with its own volume and mute keys, and separate ones for other players' games.
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
 - Also runs Game Boy and Game Boy Color games.
@@ -64,6 +64,8 @@ ROMs never leave your computer: a cartridge only stores the ROM's file name. In 
 When you play on a console, players within 32 blocks see your game live on that console and on any TVs touching it, and hear it coming from the console: full volume within 4 blocks, fading out by 32. They don't need the ROM. Pictures are sent at 10 per second, compressed, and only the parts that changed; sound is sent as compressed mono (about 11 KB/s). Nothing is sent when nobody is near.
 
 Handhelds are shared too: while you hold one in your hand, nearby players see you holding it in front of you with the game on its screen, and hear the sound following you around.
+
+Too loud? Other players' games have their own keys: **N** mutes them and **[** / **]** lower or raise their volume, without touching your own game (which keeps **M**, **-** and **=**). You can also set the volume in the config, or turn shared screens off entirely with `showOtherScreens`.
 
 Each player who wants to *play* a cartridge needs that ROM in their own `roms` folder.
 
