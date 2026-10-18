@@ -64,7 +64,7 @@ public class RemoteItem extends Item {
         }
         if (level.getBlockEntity(pos) instanceof TvBlockEntity tv) {
             TvLayout layout = tv.layout(level.getGameTime());
-            return layout.tooBig() ? null : layout.findConsole(level);
+            return layout.invalid() ? null : layout.findConsole(level);
         }
         return null;
     }

@@ -41,7 +41,7 @@ Powered by [mGBA](https://mgba.io) and [PCSX ReARMed](https://github.com/libretr
 
 ### Retro TV
 
-Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 16x16) and they act as one big, seamless screen; one of them has to touch the console. The sound comes from the middle of the screen. Right-click the screen with an empty hand to play, just like the console. While a TV shows the game, the console's own screen just says "Playing on TV".
+Place a Retro TV so it touches a console. When that console runs a game, the TV shows it too. Place TVs facing the same way in a filled rectangle (up to 16x16) and they act as one big, seamless screen; one of them has to touch the console. TVs touching each other in any other shape (an L, a cross, a gap) aren't a screen and show nothing. The sound comes from the middle of the screen. Right-click the screen with an empty hand to play, just like the console. While a TV shows the game, the console's own screen just says "Playing on TV".
 
 ### Retro Remote
 

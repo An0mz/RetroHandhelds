@@ -97,7 +97,7 @@ public final class ConsoleRenderer implements BlockEntityRenderer<ConsoleBlockEn
         }
         for (Direction direction : DIRECTIONS) {
             neighbor.setWithOffset(console.getBlockPos(), direction);
-            if (level.getBlockEntity(neighbor) instanceof TvBlockEntity tv && !tv.layout(level.getGameTime()).tooBig()) {
+            if (level.getBlockEntity(neighbor) instanceof TvBlockEntity tv && !tv.layout(level.getGameTime()).invalid()) {
                 return true;
             }
         }
