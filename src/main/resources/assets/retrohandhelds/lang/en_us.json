@@ -39,6 +39,8 @@
   "key.retrohandhelds.others_volume_down": "Other Players' Volume Down",
   "key.retrohandhelds.others_volume_up": "Other Players' Volume Up",
   "screen.retrohandhelds.power_off": "Power Off",
+  "screen.retrohandhelds.resumed": "Continuing where you left off",
+  "retrohandhelds.configuration.resumeGames": "Continue Where You Left Off",
   "item.retrohandhelds.handheld": "Retro Handheld",
   "item.retrohandhelds.handheld.named": "Retro Handheld (%s)",
   "item.retrohandhelds.handheld.empty": "Right-click a cartridge onto it in your inventory",

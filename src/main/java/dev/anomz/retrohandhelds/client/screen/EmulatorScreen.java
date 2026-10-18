@@ -93,6 +93,9 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void tick() {
+        if (session.consumeResumed()) {
+            showStatus(Component.translatable("screen.retrohandhelds.resumed"));
+        }
         // Key releases are lost while the window is unfocused, so drop everything instead of sticking.
         if (!minecraft.isWindowActive()) {
             session.joypad().clear();

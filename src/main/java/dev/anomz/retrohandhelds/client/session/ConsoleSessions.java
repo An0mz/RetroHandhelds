@@ -110,7 +110,8 @@ public final class ConsoleSessions {
         EmulatorSession session;
         try {
             session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
-                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()));
+                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()),
+                    RetroClientConfig.resumeGames());
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();

@@ -15,6 +15,7 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 - Play full screen, or switch to the in-world view and watch the game on the console, TV or handheld while you play, with the HUD hidden.
 - **Cartridges** remember which ROM they play and keep their own saves, so a game continues across consoles and handhelds.
 - In-game saves (battery save RAM) are written automatically, plus a save-state slot per cartridge.
+- Games continue where you left off: close Minecraft, walk away or put the handheld down, and the next time you play that cartridge you're right back where you were.
 - Sound through Minecraft's audio, with its own volume and mute keys, and separate ones for other players' games.
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
@@ -97,6 +98,7 @@ Everything is stored in your Minecraft folder under `retro_handhelds/`:
 | `roms/` | Your ROMs |
 | `saves/<cartridge id>/game.sav` | In-game save, written every few seconds when it changes and when the game stops |
 | `saves/<cartridge id>/state.st` | Save state (F5 / F9) |
+| `saves/<cartridge id>/resume.st` | Where you left off: saved automatically whenever the game stops (and every minute while playing), restored the next time you play that cartridge |
 | `system/` | Optional BIOS files. Not needed: mGBA has a built-in replacement |
 
 Saves belong to the cartridge, not the console: give a cartridge to someone and it starts their own save on their computer.
@@ -120,6 +122,7 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 | `gamepadPositionalAB` | false | Use Nintendo button positions instead of pad labels |
 | `shareMyScreen` | true | Let nearby players see your game |
 | `showOtherScreens` | true | Show games other players share |
+| `resumeGames` | true | Continue games where you left off |
 
 **Server settings** (`config/retrohandhelds-server.toml`):
 

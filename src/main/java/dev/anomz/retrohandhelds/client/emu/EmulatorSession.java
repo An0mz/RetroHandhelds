@@ -34,6 +34,8 @@ public final class EmulatorSession {
     private static final int AUDIO_RING_SAMPLES = 1 << 16;
     /** How often save RAM is compared with the file; also written when the session stops. */
     private static final long SAVE_RAM_CHECK_NANOS = TimeUnit.SECONDS.toNanos(5);
+    /** How often the resume state is refreshed while playing, so even a crash loses little. */
+    private static final long RESUME_SAVE_NANOS = TimeUnit.SECONDS.toNanos(60);
 
     private record StateRequest(boolean save, CompletableFuture<StateResult> result) {
     }
@@ -47,6 +49,7 @@ public final class EmulatorSession {
     private volatile int sampleRate;
     private final boolean withSound;
     private final CoreOptions options;
+    private final boolean resume;
     @Nullable
     private final SaveFiles saves;
     private final ConcurrentLinkedQueue<StateRequest> stateRequests = new ConcurrentLinkedQueue<>();
@@ -66,14 +69,18 @@ public final class EmulatorSession {
     private AudioOutput audioOutput;
     private SaveRam saveRam;
     private SaveStates saveStates;
+    /** The automatic resume slot; null when resuming is off or there are no saves. */
+    private SaveStates resumeState;
+    private volatile boolean resumed;
 
     private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves,
-            boolean withSound, CoreOptions options) {
+            boolean withSound, CoreOptions options, boolean resume) {
         this.core = core;
         this.rom = rom;
         this.saves = saves;
         this.withSound = withSound;
         this.options = options;
+        this.resume = resume;
         this.callbacks = new CoreCallbacks(frames, joypad, audio, sharedAudio, options, systemDir, saveDir);
         this.thread = new Thread(this::run, "RetroHandhelds-Emulator");
         this.thread.setDaemon(true);
@@ -82,11 +89,12 @@ public final class EmulatorSession {
     /**
      * @param saves where save RAM and the save state live; null runs without touching any saves
      * @param options core options, read by the core while it starts and whenever they change
+     * @param resume continue from where the game last stopped, and save that point again when it stops
      * @throws IllegalStateException if another session is still active
      */
     public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir,
-            @Nullable SaveFiles saves, boolean withSound, CoreOptions options) {
-        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound, options);
+            @Nullable SaveFiles saves, boolean withSound, CoreOptions options, boolean resume) {
+        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound, options, resume);
         if (!ACTIVE.compareAndSet(null, session)) {
             throw new IllegalStateException("An emulator session is already running");
         }
@@ -183,6 +191,15 @@ public final class EmulatorSession {
         return result;
     }
 
+    /** True once, if the game continued from where it last stopped. Safe to call from any thread. */
+    public boolean consumeResumed() {
+        if (!resumed) {
+            return false;
+        }
+        resumed = false;
+        return true;
+    }
+
     public CoreOptions options() {
         return options;
     }
@@ -229,6 +246,14 @@ public final class EmulatorSession {
                 saveRam = new SaveRam(core, saves.saveRam());
                 saveRam.load();
                 saveStates = new SaveStates(core, saves.state());
+                if (resume) {
+                    resumeState = new SaveStates(core, saves.resume());
+                    // After the game's own save is loaded: the state restores everything, save RAM included.
+                    resumed = resumeState.load() == StateResult.LOADED;
+                    if (resumed) {
+                        RetroHandhelds.LOGGER.info("Retro Handhelds: resumed {} where it was left", rom.getFileName());
+                    }
+                }
             }
 
             RetroSystemAvInfo av = new RetroSystemAvInfo();
@@ -247,6 +272,11 @@ public final class EmulatorSession {
             RetroHandhelds.LOGGER.error("Retro Handhelds: emulator session for {} failed", rom.getFileName(), t);
             fail(t.toString());
         } finally {
+            // Stopped for any reason (closed, too far, logged out, game quit): remember where we were.
+            // Only after a normal run: a failed one may not be in a state worth keeping.
+            if (resumeState != null && state == State.RUNNING) {
+                resumeState.save();
+            }
             if (audioOutput != null) {
                 audioOutput.close();
             }
@@ -266,6 +296,7 @@ public final class EmulatorSession {
     private void loop(long periodNanos) {
         long next = System.nanoTime();
         long nextSaveRamCheck = next + SAVE_RAM_CHECK_NANOS;
+        long nextResumeSave = next + RESUME_SAVE_NANOS;
         while (running) {
             if (paused) {
                 if (audioOutput != null) {
@@ -292,6 +323,10 @@ public final class EmulatorSession {
             if (saveRam != null && System.nanoTime() >= nextSaveRamCheck) {
                 saveRam.flushIfChanged();
                 nextSaveRamCheck = System.nanoTime() + SAVE_RAM_CHECK_NANOS;
+            }
+            if (resumeState != null && System.nanoTime() >= nextResumeSave) {
+                resumeState.save();
+                nextResumeSave = System.nanoTime() + RESUME_SAVE_NANOS;
             }
             next += periodNanos;
             long wait = next - System.nanoTime();

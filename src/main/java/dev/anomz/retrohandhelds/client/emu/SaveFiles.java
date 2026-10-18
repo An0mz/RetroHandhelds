@@ -4,8 +4,12 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/** Where one cartridge keeps its saves: {@code <saves>/<saveId>/game.sav} and {@code state.st}. */
-public record SaveFiles(Path saveRam, Path state) {
+/**
+ * Where one cartridge keeps its saves, in {@code <saves>/<saveId>/}: {@code game.sav} (the game's own
+ * save), {@code state.st} (the player's save-state slot) and {@code resume.st} (written automatically
+ * when the game stops, to continue where the player left off).
+ */
+public record SaveFiles(Path saveRam, Path state, Path resume) {
     // Save IDs arrive from the server (cartridge data), so they must not be able to name another folder.
     private static final Pattern VALID_ID = Pattern.compile("[A-Za-z0-9._-]{1,80}");
 
@@ -15,7 +19,7 @@ public record SaveFiles(Path saveRam, Path state) {
             return Optional.empty();
         }
         Path dir = savesRoot.resolve(saveId);
-        return Optional.of(new SaveFiles(dir.resolve("game.sav"), dir.resolve("state.st")));
+        return Optional.of(new SaveFiles(dir.resolve("game.sav"), dir.resolve("state.st"), dir.resolve("resume.st")));
     }
 
     /** A save ID derived from a file name, for sessions without a cartridge. */

@@ -56,6 +56,12 @@ public final class RetroClientConfig {
             .comment("Show the games other players share on their consoles and TVs.")
             .define("showOtherScreens", true);
 
+    private static final ModConfigSpec.BooleanValue RESUME_GAMES = BUILDER
+            .comment("Continue games where you left off: when a game stops (you close Minecraft, walk away,",
+                    "put the handheld away, power off...) its exact state is saved, and restored the next time",
+                    "you play that cartridge. Separate from your own save-state slot.")
+            .define("resumeGames", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private RetroClientConfig() {
@@ -122,6 +128,10 @@ public final class RetroClientConfig {
 
     public static boolean shareMyScreen() {
         return !SPEC.isLoaded() || SHARE_MY_SCREEN.get();
+    }
+
+    public static boolean resumeGames() {
+        return !SPEC.isLoaded() || RESUME_GAMES.get();
     }
 
     public static boolean showOtherScreens() {
