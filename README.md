@@ -6,6 +6,8 @@ Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you b
 
 ![Build](https://github.com/An0mz/RetroHandhelds/actions/workflows/build.yml/badge.svg)
 
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+
 ## Features
 
 - **Retro Console** block: insert a cartridge, power it on, and the game shows live on the block's screen, with sound that fades with distance.
