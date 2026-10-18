@@ -195,7 +195,7 @@ publishing {
 
 // Ship the mod's license, and mGBA's next to the bundled natives.
 tasks.named('jar', Jar) {
-    from('LICENSE', 'LICENSE-mGBA.txt')
+    from('LICENSE', 'LICENSE-mGBA.txt', 'THIRD-PARTY-NOTICES.md')
 }
 
 tasks.named('test', Test) {

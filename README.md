@@ -148,5 +148,5 @@ Retro Handhelds does not include, download or link to any games or BIOS files. O
 ## License and credits
 
 - Retro Handhelds is licensed under the [MIT License](LICENSE).
-- Emulation by [mGBA](https://github.com/mgba-emu/mgba) by Vicki Pfau and contributors, licensed under the Mozilla Public License 2.0 ([LICENSE-mGBA.txt](LICENSE-mGBA.txt)). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
+- Emulation by [mGBA](https://github.com/mgba-emu/mgba) by Vicki Pfau and contributors, licensed under the Mozilla Public License 2.0 ([LICENSE-mGBA.txt](LICENSE-mGBA.txt)). Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
 - Build files come from the [NeoForge MDK](https://github.com/NeoForged/MDK) template (MIT, notice included in [LICENSE](LICENSE)).
