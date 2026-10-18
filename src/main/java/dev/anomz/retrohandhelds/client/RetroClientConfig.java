@@ -13,11 +13,14 @@ public final class RetroClientConfig {
             .defineInRange("volume", VOLUME_STEPS, 0, VOLUME_STEPS);
     private static final ModConfigSpec.IntValue OTHER_PLAYERS_VOLUME = BUILDER
             .comment("Volume of other players' consoles and handhelds in steps of 10% (0-10).",
-                    "The volume keys change it while you aren't playing yourself.")
+                    "Changed in game with the Other Players' Volume keys.")
             .defineInRange("otherPlayersVolume", VOLUME_STEPS, 0, VOLUME_STEPS);
     private static final ModConfigSpec.BooleanValue MUTED = BUILDER
-            .comment("Mute the emulator, and other players' games.")
+            .comment("Mute your own game.")
             .define("muted", false);
+    private static final ModConfigSpec.BooleanValue OTHER_PLAYERS_MUTED = BUILDER
+            .comment("Mute other players' games, without touching your own.")
+            .define("otherPlayersMuted", false);
 
     private static final ModConfigSpec.BooleanValue COLOR_CORRECTION = BUILDER
             .comment("Adjust colors to look like a real GBA/GBC screen (less saturated, slightly darker).")
@@ -69,6 +72,15 @@ public final class RetroClientConfig {
     public static void setOtherPlayersVolume(int volume) {
         OTHER_PLAYERS_VOLUME.set(Math.clamp(volume, 0, VOLUME_STEPS));
         OTHER_PLAYERS_VOLUME.save();
+    }
+
+    public static boolean otherPlayersMuted() {
+        return SPEC.isLoaded() && OTHER_PLAYERS_MUTED.get();
+    }
+
+    public static void setOtherPlayersMuted(boolean muted) {
+        OTHER_PLAYERS_MUTED.set(muted);
+        OTHER_PLAYERS_MUTED.save();
     }
 
     public static boolean muted() {

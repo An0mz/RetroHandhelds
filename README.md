@@ -80,7 +80,8 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 | Fast-forward (hold) | Tab | |
 | Full screen / in-world view | V | |
 | Save / load state | F5 / F9 | |
-| Mute, volume down/up | M, -, = (also in the world) | When you aren't playing, - and = change other players' volume |
+| Mute, volume down/up (your game) | M, -, = (also in the world) | |
+| Mute, volume down/up (other players' games) | N, [, ] (also in the world) | Never touches your own game |
 | Back to Minecraft | Esc | |
 
 The game pauses when Minecraft pauses (singleplayer). On servers and LAN worlds Minecraft keeps running, and so does the game.
@@ -106,7 +107,8 @@ Saves belong to the cartridge, not the console: give a cartridge to someone and 
 |---|---|---|
 | `volume` | 10 | 0-10, on top of the Jukebox/Note Blocks slider |
 | `otherPlayersVolume` | 10 | 0-10, volume of other players' consoles and handhelds |
-| `muted` | false | Also mutes other players' games |
+| `muted` | false | Mutes your own game |
+| `otherPlayersMuted` | false | Mutes other players' games |
 | `colorCorrection` | false | Colors like a real GBA screen |
 | `lcdGhosting` | false | Frame blending like the original LCD |
 | `inWorldView` | false | Open games in the in-world view |

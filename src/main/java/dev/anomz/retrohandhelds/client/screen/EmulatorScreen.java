@@ -73,7 +73,11 @@ public final class EmulatorScreen extends Screen {
                         .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
                         .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage())
                         .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)")
-                        .append("   View: ").append(EmulatorKeys.TOGGLE_VIEW.getTranslatedKeyMessage()));
+                        .append("   View: ").append(EmulatorKeys.TOGGLE_VIEW.getTranslatedKeyMessage()),
+                Component.empty()
+                        .append("Other players: mute ").append(EmulatorKeys.MUTE_OTHERS.getTranslatedKeyMessage())
+                        .append("   volume ").append(EmulatorKeys.OTHERS_VOLUME_DOWN.getTranslatedKeyMessage())
+                        .append(" / ").append(EmulatorKeys.OTHERS_VOLUME_UP.getTranslatedKeyMessage()));
     }
 
     private static Component hint(JoypadButton... buttons) {
@@ -199,6 +203,18 @@ public final class EmulatorScreen extends Screen {
         }
         if (matches(EmulatorKeys.VOLUME_UP, keyCode, scanCode)) {
             showStatus(ConsoleSessions.changeVolume(1));
+            return true;
+        }
+        if (matches(EmulatorKeys.MUTE_OTHERS, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.toggleOtherPlayersMute());
+            return true;
+        }
+        if (matches(EmulatorKeys.OTHERS_VOLUME_DOWN, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.changeOtherPlayersVolume(-1));
+            return true;
+        }
+        if (matches(EmulatorKeys.OTHERS_VOLUME_UP, keyCode, scanCode)) {
+            showStatus(ConsoleSessions.changeOtherPlayersVolume(1));
             return true;
         }
         if (keyCode != GLFW.GLFW_KEY_ESCAPE && setButtons(keyCode, scanCode, true)) {

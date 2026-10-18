@@ -73,7 +73,7 @@ public final class RemoteAudio {
         if (CONSOLES.isEmpty() && HANDHELDS.isEmpty()) {
             return;
         }
-        float playerVolume = RetroClientConfig.muted() ? 0
+        float playerVolume = RetroClientConfig.otherPlayersMuted() ? 0
                 : RetroClientConfig.otherPlayersVolume() / (float) RetroClientConfig.VOLUME_STEPS;
         float gain = minecraft.options.getSoundSourceVolume(SoundSource.RECORDS) * playerVolume;
         long now = Util.getMillis();

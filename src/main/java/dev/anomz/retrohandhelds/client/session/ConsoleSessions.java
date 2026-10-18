@@ -156,12 +156,24 @@ public final class ConsoleSessions {
         return volumeMessage();
     }
 
-    /** Changes other players' volume by whole steps of 10%; also unmutes. Saved to the client config. */
+    /** Mutes or unmutes other players' games only. Saved to the client config. */
+    public static Component toggleOtherPlayersMute() {
+        RetroClientConfig.setOtherPlayersMuted(!RetroClientConfig.otherPlayersMuted());
+        return otherPlayersVolumeMessage();
+    }
+
+    /** Changes other players' volume by whole steps of 10%; also unmutes them. Saved to the client config. */
     public static Component changeOtherPlayersVolume(int steps) {
         RetroClientConfig.setOtherPlayersVolume(RetroClientConfig.otherPlayersVolume() + steps);
-        RetroClientConfig.setMuted(false);
-        return Component.translatable("message.retrohandhelds.other_volume",
-                RetroClientConfig.otherPlayersVolume() * 100 / RetroClientConfig.VOLUME_STEPS);
+        RetroClientConfig.setOtherPlayersMuted(false);
+        return otherPlayersVolumeMessage();
+    }
+
+    private static Component otherPlayersVolumeMessage() {
+        return RetroClientConfig.otherPlayersMuted()
+                ? Component.translatable("message.retrohandhelds.other_muted")
+                : Component.translatable("message.retrohandhelds.other_volume",
+                        RetroClientConfig.otherPlayersVolume() * 100 / RetroClientConfig.VOLUME_STEPS);
     }
 
     private static Component volumeMessage() {
