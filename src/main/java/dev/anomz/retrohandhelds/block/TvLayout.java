@@ -1,14 +1,14 @@
 package dev.anomz.retrohandhelds.block;
 
-import java.util.ArrayDeque;
-
 import org.jetbrains.annotations.Nullable;
 
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -26,46 +26,88 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
     private static final int MAX_CELLS = MAX_SIZE * MAX_SIZE;
     private static final Direction[] DIRECTIONS = Direction.values();
 
+    /** Receives the layout of another TV of the same screen; {@code pos} is only valid during the call. */
+    @FunctionalInterface
+    public interface CellLayouts {
+        void accept(BlockPos pos, TvLayout layout);
+    }
+
     /** The screen {@code pos} belongs to. */
     public static TvLayout of(BlockGetter level, BlockPos pos, Direction facing) {
+        return of(level, pos, facing, null);
+    }
+
+    /**
+     * The screen {@code pos} belongs to. The walk visits every TV of the screen anyway, so their
+     * layouts are handed to {@code others} too: one walk then serves a whole wall of TVs.
+     */
+    public static TvLayout of(BlockGetter level, BlockPos pos, Direction facing, @Nullable CellLayouts others) {
         // The viewer stands in front of the TV, looking at it; their right is the TV's counter-clockwise side.
         Direction right = facing.getCounterClockWise();
         Direction[] plane = { right, right.getOpposite(), Direction.UP, Direction.DOWN };
-        // Walk the whole group, in screen coordinates relative to pos.
+        // Walk the whole group, in screen coordinates relative to pos. Positions stay packed longs,
+        // so the walk allocates nothing per cell.
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         LongOpenHashSet seen = new LongOpenHashSet();
-        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
-        seen.add(pos.asLong());
-        queue.add(pos);
+        LongArrayFIFOQueue queue = new LongArrayFIFOQueue();
+        long start = pos.asLong();
+        seen.add(start);
+        queue.enqueue(start);
         int minCol = 0;
         int maxCol = 0;
         int minRow = 0;
         int maxRow = 0;
-        while (!queue.isEmpty()) {
-            BlockPos cell = queue.poll();
-            int c = (cell.getX() - pos.getX()) * right.getStepX() + (cell.getZ() - pos.getZ()) * right.getStepZ();
-            int r = cell.getY() - pos.getY();
+        boolean tooBig = false;
+        while (!queue.isEmpty() && !tooBig) {
+            long cell = queue.dequeueLong();
+            int c = column(cell, pos, right);
+            int r = BlockPos.getY(cell) - pos.getY();
             minCol = Math.min(minCol, c);
             maxCol = Math.max(maxCol, c);
             minRow = Math.min(minRow, r);
             maxRow = Math.max(maxRow, r);
             for (Direction step : plane) {
-                BlockPos next = cell.relative(step);
-                if (!seen.contains(next.asLong()) && isTv(level.getBlockState(next), facing)) {
+                long next = BlockPos.offset(cell, step);
+                if (!seen.contains(next) && isTv(level.getBlockState(cursor.set(next)), facing)) {
                     if (seen.size() >= MAX_CELLS) {
-                        return new TvLayout(pos, right, 1, 1, 0, 0, true);
+                        tooBig = true;
+                        break;
                     }
-                    seen.add(next.asLong());
-                    queue.add(next);
+                    seen.add(next);
+                    queue.enqueue(next);
                 }
             }
+        }
+        if (tooBig) {
+            if (others != null) {
+                seen.forEach((long cell) -> {
+                    cursor.set(cell);
+                    others.accept(cursor, new TvLayout(cursor.immutable(), right, 1, 1, 0, 0, true));
+                });
+            }
+            return new TvLayout(pos, right, 1, 1, 0, 0, true);
         }
         int cols = maxCol - minCol + 1;
         int rows = maxRow - minRow + 1;
         // Every cell of the bounding box was reached, so the group is a filled rectangle.
-        boolean rectangle = seen.size() == cols * rows;
+        boolean invalid = seen.size() != cols * rows || cols > MAX_SIZE || rows > MAX_SIZE;
         BlockPos origin = pos.relative(right, minCol).above(minRow);
-        return new TvLayout(origin, right, cols, rows, -minCol, -minRow,
-                !rectangle || cols > MAX_SIZE || rows > MAX_SIZE);
+        if (others != null) {
+            int firstCol = minCol;
+            int firstRow = minRow;
+            seen.forEach((long cell) -> {
+                if (cell != start) {
+                    others.accept(cursor.set(cell), new TvLayout(origin, right, cols, rows,
+                            column(cell, pos, right) - firstCol, BlockPos.getY(cell) - pos.getY() - firstRow, invalid));
+                }
+            });
+        }
+        return new TvLayout(origin, right, cols, rows, -minCol, -minRow, invalid);
+    }
+
+    /** Screen column of {@code cell}, counted from {@code pos}. */
+    private static int column(long cell, BlockPos pos, Direction right) {
+        return (BlockPos.getX(cell) - pos.getX()) * right.getStepX() + (BlockPos.getZ(cell) - pos.getZ()) * right.getStepZ();
     }
 
     /**
@@ -78,7 +120,10 @@ public record TvLayout(BlockPos origin, Direction right, int cols, int rows, int
             BlockState state = level.getBlockState(pos);
             if (state.getBlock() instanceof TvBlock) {
                 Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
-                TvLayout layout = of(level, pos, facing);
+                // Asked every tick for every playing console: use the TV's cached layout when there is one.
+                TvLayout layout = level instanceof Level world && world.getBlockEntity(pos) instanceof TvBlockEntity tv
+                        ? tv.layout(world.getGameTime())
+                        : of(level, pos, facing);
                 if (!layout.invalid()) {
                     return layout.frontCenter(facing);
                 }

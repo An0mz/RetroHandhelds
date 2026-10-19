@@ -2,6 +2,7 @@ package dev.anomz.retrohandhelds.block;
 
 import dev.anomz.retrohandhelds.RetroRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,10 +21,20 @@ public class TvBlockEntity extends BlockEntity {
         super(RetroRegistries.TV_BLOCK_ENTITY.get(), pos, state);
     }
 
-    /** This TV's screen layout, re-checked twice a second so placing or breaking TVs updates it. */
+    /**
+     * This TV's screen layout, re-checked twice a second so placing or breaking TVs updates it. One
+     * check walks the whole screen and refreshes every TV in it, so a big wall costs one walk.
+     */
     public TvLayout layout(long gameTime) {
         if (layout == null || gameTime - layoutCheckedAt >= LAYOUT_CHECK_INTERVAL || gameTime < layoutCheckedAt) {
-            layout = TvLayout.of(level, worldPosition, getBlockState().getValue(HorizontalDirectionalBlock.FACING));
+            Direction facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+            TvLayout mine = TvLayout.of(level, worldPosition, facing, (pos, cellLayout) -> {
+                if (level.getBlockEntity(pos) instanceof TvBlockEntity other) {
+                    other.layout = cellLayout;
+                    other.layoutCheckedAt = gameTime;
+                }
+            });
+            layout = mine;
             layoutCheckedAt = gameTime;
         }
         return layout;

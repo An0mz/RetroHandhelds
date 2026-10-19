@@ -17,6 +17,10 @@ new features raise the middle number, fixes alone the last one.
 - Save states from cores other than mGBA are kept in their own files, so switching cores can't load
   an incompatible state. Existing GBA saves and states are unchanged.
 
+### Fixed
+- Big TV walls no longer slow the game down or run it out of memory: one check now works out the
+  screen for every TV in the wall, instead of each TV walking the whole wall twice a second.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added
