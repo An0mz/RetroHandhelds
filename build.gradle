@@ -195,7 +195,7 @@ publishing {
 
 // Ship the mod's license, and the bundled cores' next to their natives.
 tasks.named('jar', Jar) {
-    from('LICENSE', 'LICENSE-mGBA.txt', 'LICENSE-FCEUmm.txt', 'LICENSE-bsnes.txt', 'LICENSE-BlastEm.txt',
+    from('LICENSE', 'LICENSE-mGBA.txt', 'LICENSE-FCEUmm.txt', 'LICENSE-Mesen-S.txt', 'LICENSE-BlastEm.txt',
             'LICENSE-Gearsystem.txt', 'THIRD-PARTY-NOTICES.md')
 }
 

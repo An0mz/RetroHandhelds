@@ -114,11 +114,11 @@ The system is picked from the ROM's file extension:
 |---|---|---|---|
 | GBA, Game Boy, Game Boy Color | `.gba` `.gb` `.gbc` | mGBA | `mgba` |
 | NES | `.nes` | FCEUmm | `nestopia`, `fceumm`, `mesen` |
-| SNES | `.sfc` `.smc` | bsnes | `snes9x`, `bsnes` |
+| SNES | `.sfc` `.smc` | Mesen-S | `snes9x`, `mesen-s` |
 | Genesis / Mega Drive | `.md` `.gen` `.smd` | BlastEm | `genesis_plus_gx`, `picodrive`, `blastem` |
 | Master System, Game Gear | `.sms` `.gg` | Gearsystem | `genesis_plus_gx`, `picodrive`, `gearsystem` |
 
-To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
+To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. Cores built on libco, like bsnes and its forks, don't work in the mod. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
 
 Other players see a shared game at up to 240x160, scaled down from larger systems.
 
@@ -176,5 +176,5 @@ Retro Handhelds does not include, download or link to any games or BIOS files. O
 ## License and credits
 
 - Retro Handhelds is licensed under the [MIT License](LICENSE).
-- Emulation by [mGBA](https://github.com/mgba-emu/mgba) (MPL 2.0, [LICENSE-mGBA.txt](LICENSE-mGBA.txt)), [FCEUmm](https://github.com/libretro/libretro-fceumm) (GPL 2.0, [LICENSE-FCEUmm.txt](LICENSE-FCEUmm.txt)), [bsnes](https://github.com/libretro/bsnes) (GPL 3.0, [LICENSE-bsnes.txt](LICENSE-bsnes.txt)), [BlastEm](https://github.com/libretro/blastem) (GPL 3.0, [LICENSE-BlastEm.txt](LICENSE-BlastEm.txt)) and [Gearsystem](https://github.com/drhelius/Gearsystem) (GPL 3.0, [LICENSE-Gearsystem.txt](LICENSE-Gearsystem.txt)), each by their authors and contributors. Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
+- Emulation by [mGBA](https://github.com/mgba-emu/mgba) (MPL 2.0, [LICENSE-mGBA.txt](LICENSE-mGBA.txt)), [FCEUmm](https://github.com/libretro/libretro-fceumm) (GPL 2.0, [LICENSE-FCEUmm.txt](LICENSE-FCEUmm.txt)), [Mesen-S](https://github.com/libretro/Mesen-S) (GPL 3.0, [LICENSE-Mesen-S.txt](LICENSE-Mesen-S.txt)), [BlastEm](https://github.com/libretro/blastem) (GPL 3.0, [LICENSE-BlastEm.txt](LICENSE-BlastEm.txt)) and [Gearsystem](https://github.com/drhelius/Gearsystem) (GPL 3.0, [LICENSE-Gearsystem.txt](LICENSE-Gearsystem.txt)), each by their authors and contributors. Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
 - Build files come from the [NeoForge MDK](https://github.com/NeoForged/MDK) template (MIT, notice included in [LICENSE](LICENSE)).

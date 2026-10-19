@@ -25,16 +25,16 @@ following unmodified third-party software.
 - License: GNU General Public License 2.0 ([LICENSE-FCEUmm.txt](LICENSE-FCEUmm.txt))
 - Source code: https://github.com/libretro/libretro-fceumm (exact version: the commit above)
 
-## bsnes
+## Mesen-S
 
-- What: the SNES emulator, as libretro cores in `natives/<platform>/bsnes_libretro.*`
+- What: the SNES emulator, as libretro cores in `natives/<platform>/mesen-s_libretro.*`
   (Windows x64, Linux x64, macOS arm64, macOS x64)
-- Version: bsnes 115 (libretro port), built from commit
-  [`63ee22f7af8f5d1ada295c2c98fd7bf261fa62a7`](https://github.com/libretro/bsnes/tree/63ee22f7af8f5d1ada295c2c98fd7bf261fa62a7)
+- Version: Mesen-S 0.4.0, built from commit
+  [`9e4fdeb9b336470bc96beb8765b2e79c86a2da1e`](https://github.com/libretro/Mesen-S/tree/9e4fdeb9b336470bc96beb8765b2e79c86a2da1e)
 - Built by: the [libretro buildbot](https://buildbot.libretro.com/nightly/) (nightly of 2026-10-18)
-- Authors: byuu (Near) and contributors
-- License: GNU General Public License 3.0 only; its support libraries under the ISC license ([LICENSE-bsnes.txt](LICENSE-bsnes.txt))
-- Source code: https://github.com/libretro/bsnes (exact version: the commit above)
+- Authors: Sour and contributors
+- License: GNU General Public License 3.0 ([LICENSE-Mesen-S.txt](LICENSE-Mesen-S.txt))
+- Source code: https://github.com/libretro/Mesen-S (exact version: the commit above)
 
 ## BlastEm
 

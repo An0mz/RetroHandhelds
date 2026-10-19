@@ -7,11 +7,14 @@ import java.util.Optional;
 /**
  * The game systems the mod can run, picked by ROM file extension. Used on both sides: the server
  * only accepts cartridges for a known system, and the client picks the core from it.
+ *
+ * <p>Cores built on libco (bsnes and its forks) cannot be used: they call back into Java from
+ * coroutine stacks the JVM does not know, which breaks its locking and stack checks.
  */
 public enum RetroSystem {
     GAME_BOY_ADVANCE("Game Boy Advance", List.of("gba", "gbc", "gb"), "mgba", List.of("mgba")),
     NES("NES", List.of("nes"), "fceumm", List.of("nestopia", "fceumm", "mesen")),
-    SNES("SNES", List.of("sfc", "smc"), "bsnes", List.of("snes9x", "bsnes")),
+    SNES("SNES", List.of("sfc", "smc"), "mesen-s", List.of("snes9x", "mesen-s")),
     GENESIS("Genesis", List.of("md", "gen", "smd"), "blastem", List.of("genesis_plus_gx", "picodrive", "blastem")),
     MASTER_SYSTEM("Master System / Game Gear", List.of("sms", "gg"), "gearsystem",
             List.of("genesis_plus_gx", "picodrive", "gearsystem"));

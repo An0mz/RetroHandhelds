@@ -231,13 +231,14 @@ public final class EmulatorSession {
             romData.write(0, bytes, 0, bytes.length);
 
             core.retro_set_environment(callbacks.environment);
+            core.retro_init();
+            initialized = true;
+            // After retro_init, as RetroArch does: Mesen-S hands these to objects retro_init creates.
             core.retro_set_video_refresh(callbacks.videoRefresh);
             core.retro_set_audio_sample(callbacks.audioSample);
             core.retro_set_audio_sample_batch(callbacks.audioSampleBatch);
             core.retro_set_input_poll(callbacks.inputPoll);
             core.retro_set_input_state(callbacks.inputState);
-            core.retro_init();
-            initialized = true;
 
             RetroSystemInfo info = new RetroSystemInfo();
             core.retro_get_system_info(info);
