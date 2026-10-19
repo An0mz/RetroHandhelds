@@ -6,15 +6,15 @@ import java.nio.file.Path;
 import com.sun.jna.Memory;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 
 /** One save-state slot backed by a file. Emulator thread only, between frames. */
 final class SaveStates {
-    private final MgbaCore core;
+    private final LibretroCore core;
     private final Path file;
     private Memory buffer;
 
-    SaveStates(MgbaCore core, Path file) {
+    SaveStates(LibretroCore core, Path file) {
         this.core = core;
         this.file = file;
     }

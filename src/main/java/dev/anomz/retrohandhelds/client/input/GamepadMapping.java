@@ -14,8 +14,9 @@ public final class GamepadMapping {
      * @param buttons GLFW_PRESS (1) or GLFW_RELEASE (0) per {@code GLFW_GAMEPAD_BUTTON_*}
      * @param axes values per {@code GLFW_GAMEPAD_AXIS_*}: sticks -1..1 (y down), triggers -1..1
      * @param deadzone how far the left stick must move (0..1) to count as a D-pad press
-     * @param positionalAB false: pad A/B labels map to GBA A/B. true: Nintendo positions, so the
-     *     east button (Xbox B) is GBA A and the south button (Xbox A) is GBA B
+     * @param positionalAB false: pad A/B/X/Y labels map to the same-named buttons. true: Nintendo
+     *     positions, so the east button (Xbox B) is A, south (Xbox A) is B, north (Xbox Y) is X and
+     *     west (Xbox X) is Y
      */
     public static int toRetroMask(byte[] buttons, float[] axes, float deadzone, boolean positionalAB) {
         int mask = 0;
@@ -23,6 +24,10 @@ public final class GamepadMapping {
         boolean east = pressed(buttons, GLFW_GAMEPAD_BUTTON_B);
         mask |= bit(positionalAB ? east : south, DEVICE_ID_JOYPAD_A);
         mask |= bit(positionalAB ? south : east, DEVICE_ID_JOYPAD_B);
+        boolean west = pressed(buttons, GLFW_GAMEPAD_BUTTON_X);
+        boolean north = pressed(buttons, GLFW_GAMEPAD_BUTTON_Y);
+        mask |= bit(positionalAB ? north : west, DEVICE_ID_JOYPAD_X);
+        mask |= bit(positionalAB ? west : north, DEVICE_ID_JOYPAD_Y);
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER)
                 || axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > TRIGGER_THRESHOLD, DEVICE_ID_JOYPAD_L);
         mask |= bit(pressed(buttons, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER)

@@ -3,6 +3,20 @@
 All notable changes to Retro Handhelds. Versions follow [semantic versioning](https://semver.org):
 new features raise the middle number, fixes alone the last one.
 
+## [Unreleased]
+
+### Added
+- **More systems:** NES, SNES, Genesis / Mega Drive, Master System and Game Gear games, picked by
+  file extension (`.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.smd`, `.sms`, `.gg`).
+- **Your own cores:** put any libretro core in `retro_handhelds/cores/` (e.g. Genesis Plus GX or
+  Snes9x) to use it instead of the bundled one.
+
+### Changed
+- Games show at up to 320x240, so NES, SNES and Genesis games keep their full picture, at the shape the
+  core asks for (Genesis at 4:3). Bigger pictures are scaled down instead of cropped.
+- Save states from cores other than mGBA are kept in their own files, so switching cores can't load
+  an incompatible state. Existing GBA saves and states are unchanged.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added

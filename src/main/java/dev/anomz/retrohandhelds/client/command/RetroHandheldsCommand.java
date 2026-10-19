@@ -11,11 +11,11 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroSystem;
 import dev.anomz.retrohandhelds.client.RetroPaths;
 import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
@@ -61,14 +61,16 @@ public final class RetroHandheldsCommand {
             source.sendFailure(Component.translatable("message.retrohandhelds.rom_missing", name));
             return 0;
         }
-        Optional<MgbaCore> core = NativeLoader.load();
+        RetroSystem system = RetroSystem.forFileName(name).orElseThrow();
+        Optional<NativeLoader.LoadedCore> core = NativeLoader.load(system);
         if (core.isEmpty()) {
-            source.sendFailure(Component.translatable("message.retrohandhelds.core_missing"));
+            source.sendFailure(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
+                    RetroPaths.cores().toString()));
             return 0;
         }
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
+            session = EmulatorSession.start(core.get().api(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
                     new CoreOptions(false, false), false);
         } catch (IllegalStateException e) {
             source.sendFailure(Component.translatable("message.retrohandhelds.busy"));

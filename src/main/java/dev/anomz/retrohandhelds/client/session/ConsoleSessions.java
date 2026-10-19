@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import dev.anomz.retrohandhelds.RetroSystem;
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.RetroRegistries;
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
@@ -17,7 +18,6 @@ import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.item.CartridgeData;
@@ -95,28 +95,31 @@ public final class ConsoleSessions {
             onError.accept(Component.translatable("message.retrohandhelds.rom_missing", romFile));
             return Optional.empty();
         }
-        Optional<MgbaCore> core = NativeLoader.load();
+        // RomLibrary only resolves names with a known system's extension.
+        RetroSystem system = RetroSystem.forFileName(romFile).orElseThrow();
+        Optional<NativeLoader.LoadedCore> core = NativeLoader.load(system);
         if (core.isEmpty()) {
-            onError.accept(Component.translatable("message.retrohandhelds.core_missing"));
+            onError.accept(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
+                    RetroPaths.cores().toString()));
             return Optional.empty();
         }
         // A cartridge saves under its own ID; the play command saves per ROM file.
         String saveId = cartridge != null ? cartridge.saveId() : SaveFiles.idFromName("standalone_", romFile);
-        SaveFiles saves = SaveFiles.forId(RetroPaths.saves(), saveId).orElse(null);
+        SaveFiles saves = SaveFiles.forId(RetroPaths.saves(), saveId, core.get().name()).orElse(null);
         if (saves == null) {
             RetroHandhelds.LOGGER.warn("Retro Handhelds: invalid save ID {}, playing without saves", saveId);
         }
         stop();
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
+            session = EmulatorSession.start(core.get().api(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
                     new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()),
                     RetroClientConfig.resumeGames());
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));
             return Optional.empty();
         }
-        active = new Active(session, new SessionDisplay(session.frames()), pos, cartridge, handheld, romFile);
+        active = new Active(session, new SessionDisplay(session), pos, cartridge, handheld, romFile);
         return Optional.of(active);
     }
 

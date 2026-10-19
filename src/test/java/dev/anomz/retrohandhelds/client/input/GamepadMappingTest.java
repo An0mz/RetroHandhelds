@@ -44,12 +44,16 @@ class GamepadMappingTest {
     void labelLayoutMatchesPadLabels() {
         assertEquals(bits(DEVICE_ID_JOYPAD_A), map(GLFW_GAMEPAD_BUTTON_A));
         assertEquals(bits(DEVICE_ID_JOYPAD_B), map(GLFW_GAMEPAD_BUTTON_B));
+        assertEquals(bits(DEVICE_ID_JOYPAD_X), map(GLFW_GAMEPAD_BUTTON_X));
+        assertEquals(bits(DEVICE_ID_JOYPAD_Y), map(GLFW_GAMEPAD_BUTTON_Y));
     }
 
     @Test
     void positionalLayoutUsesNintendoPositions() {
         assertEquals(bits(DEVICE_ID_JOYPAD_B), map(true, 0, 0, -1, -1, GLFW_GAMEPAD_BUTTON_A));
         assertEquals(bits(DEVICE_ID_JOYPAD_A), map(true, 0, 0, -1, -1, GLFW_GAMEPAD_BUTTON_B));
+        assertEquals(bits(DEVICE_ID_JOYPAD_Y), map(true, 0, 0, -1, -1, GLFW_GAMEPAD_BUTTON_X));
+        assertEquals(bits(DEVICE_ID_JOYPAD_X), map(true, 0, 0, -1, -1, GLFW_GAMEPAD_BUTTON_Y));
     }
 
     @Test

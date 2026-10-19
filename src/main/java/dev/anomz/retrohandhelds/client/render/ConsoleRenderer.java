@@ -8,7 +8,6 @@ import com.mojang.math.Axis;
 
 import dev.anomz.retrohandhelds.block.ConsoleBlockEntity;
 import dev.anomz.retrohandhelds.block.TvBlockEntity;
-import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ScreenImage;
 import dev.anomz.retrohandhelds.client.share.RemoteScreens;
 import net.minecraft.client.gui.Font;
@@ -72,15 +71,15 @@ public final class ConsoleRenderer implements BlockEntityRenderer<ConsoleBlockEn
         Matrix4f pose = poseStack.last().pose();
         VertexConsumer consumer = buffers.getBuffer(RenderType.text(display.textureId()));
         // Fit the picture inside the area: GBA fills it, Game Boy (10:9) gets black bars at the sides.
-        float aspect = display.width() / (float) display.height();
+        float aspect = display.aspectRatio();
         float halfWidth = Math.min(AREA_HALF_WIDTH, AREA_HALF_HEIGHT * aspect);
         float halfHeight = halfWidth / aspect;
         float left = halfWidth;
         float right = -halfWidth;
         float top = AREA_CENTER_Y + halfHeight;
         float bottom = AREA_CENTER_Y - halfHeight;
-        float u1 = display.width() / (float) FrameBuffer.WIDTH;
-        float v1 = display.height() / (float) FrameBuffer.HEIGHT;
+        float u1 = display.width() / (float) display.textureWidth();
+        float v1 = display.height() / (float) display.textureHeight();
         // Counter-clockwise as seen from the front (the viewer's left is +X here).
         // The screen glows, so it ignores world light.
         vertex(consumer, pose, left, top, 0, 0);

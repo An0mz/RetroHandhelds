@@ -1,8 +1,8 @@
 # Retro Handhelds
 
-Play your own GBA games inside Minecraft. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
+Play your own retro games inside Minecraft: GBA, Game Boy, NES, SNES, Genesis, Master System and Game Gear. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
 
-Powered by [mGBA](https://mgba.io). **No games or BIOS files are included; you bring your own.**
+Powered by [libretro](https://www.libretro.com) cores: [mGBA](https://mgba.io) and others, bundled, plus any libretro core you add yourself. **No games or BIOS files are included; you bring your own.**
 
 ![Build](https://github.com/An0mz/RetroHandhelds/actions/workflows/build.yml/badge.svg)
 
@@ -21,7 +21,8 @@ What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 - Sound through Minecraft's audio, with its own volume and mute keys, and separate ones for other players' games.
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
-- Also runs Game Boy and Game Boy Color games.
+- Runs GBA, Game Boy, Game Boy Color, NES, SNES, Genesis / Mega Drive, Master System and Game Gear games.
+- Add your own [libretro](https://www.libretro.com) cores (Genesis Plus GX, Snes9x, ...) to use them instead of the bundled ones.
 - Multiplayer: players near a console see and hear the game being played on it, on its TVs too.
 - Server-friendly: all emulation runs on each player's own computer; the server only forwards compressed pictures, within limits the owner sets.
 
@@ -34,7 +35,7 @@ What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 ## Getting started
 
 1. Start Minecraft once with the mod installed. It creates `retro_handhelds/roms/` in your Minecraft folder (next to `mods/`).
-2. Put your own `.gba`, `.gb` or `.gbc` files in `retro_handhelds/roms/`.
+2. Put your own games in `retro_handhelds/roms/` (see [Systems and cores](#systems-and-cores) for the file types).
 3. Craft a **Cartridge**, hold it and right-click: pick a ROM from the list.
 4. Play it:
    - **Console:** place a Retro Console, right-click it with the cartridge to insert, then right-click with an empty hand to power on. Sneak + right-click with an empty hand ejects the cartridge.
@@ -80,6 +81,7 @@ All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. 
 |---|---|---|
 | D-pad | Arrow keys | D-pad or left stick |
 | A / B | X / Z | A / B (or Nintendo positions, see config) |
+| X / Y (SNES, Genesis) | D / C | X / Y (or Nintendo positions) |
 | L / R | A / S | Bumpers or triggers |
 | Start / Select | Enter / Backspace | Start / Back (Options / Share) |
 | Fast-forward (hold) | Tab | |
@@ -99,9 +101,26 @@ Everything is stored in your Minecraft folder under `retro_handhelds/`:
 |---|---|
 | `roms/` | Your ROMs |
 | `saves/<cartridge id>/game.sav` | In-game save, written every few seconds when it changes and when the game stops |
-| `saves/<cartridge id>/state.st` | Save state (F5 / F9) |
+| `saves/<cartridge id>/state.st` | Save state (F5 / F9). Cores other than mGBA use their own file, e.g. `state.snes9x.st`, since states only load in the core that made them |
 | `saves/<cartridge id>/resume.st` | Where you left off: saved automatically whenever the game stops (and every minute while playing), restored the next time you play that cartridge |
-| `system/` | Optional BIOS files. Not needed: mGBA has a built-in replacement |
+| `cores/` | Optional libretro cores you add yourself; see below |
+| `system/` | Optional BIOS files. Not needed by the bundled cores |
+
+## Systems and cores
+
+The system is picked from the ROM's file extension:
+
+| System | Extensions | Bundled core | Cores you can add (first found wins) |
+|---|---|---|---|
+| GBA, Game Boy, Game Boy Color | `.gba` `.gb` `.gbc` | mGBA | `mgba` |
+| NES | `.nes` | FCEUmm | `nestopia`, `fceumm`, `mesen` |
+| SNES | `.sfc` `.smc` | bsnes | `snes9x`, `bsnes` |
+| Genesis / Mega Drive | `.md` `.gen` `.smd` | BlastEm | `genesis_plus_gx`, `picodrive`, `blastem` |
+| Master System, Game Gear | `.sms` `.gg` | Gearsystem | `genesis_plus_gx`, `picodrive`, `gearsystem` |
+
+To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
+
+Other players see a shared game at up to 240x160, scaled down from larger systems.
 
 Saves belong to the cartridge, not the console: give a cartridge to someone and it starts their own save on their computer.
 
@@ -157,5 +176,5 @@ Retro Handhelds does not include, download or link to any games or BIOS files. O
 ## License and credits
 
 - Retro Handhelds is licensed under the [MIT License](LICENSE).
-- Emulation by [mGBA](https://github.com/mgba-emu/mgba) by Vicki Pfau and contributors, licensed under the Mozilla Public License 2.0 ([LICENSE-mGBA.txt](LICENSE-mGBA.txt)). Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
+- Emulation by [mGBA](https://github.com/mgba-emu/mgba) (MPL 2.0, [LICENSE-mGBA.txt](LICENSE-mGBA.txt)), [FCEUmm](https://github.com/libretro/libretro-fceumm) (GPL 2.0, [LICENSE-FCEUmm.txt](LICENSE-FCEUmm.txt)), [bsnes](https://github.com/libretro/bsnes) (GPL 3.0, [LICENSE-bsnes.txt](LICENSE-bsnes.txt)), [BlastEm](https://github.com/libretro/blastem) (GPL 3.0, [LICENSE-BlastEm.txt](LICENSE-BlastEm.txt)) and [Gearsystem](https://github.com/drhelius/Gearsystem) (GPL 3.0, [LICENSE-Gearsystem.txt](LICENSE-Gearsystem.txt)), each by their authors and contributors. Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
 - Build files come from the [NeoForge MDK](https://github.com/NeoForged/MDK) template (MIT, notice included in [LICENSE](LICENSE)).

@@ -63,7 +63,7 @@ public final class EmulatorScreen extends Screen {
         // Built here, not per frame; bindings cannot change while this screen is open.
         hintLines = List.of(
                 hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
-                hint(JoypadButton.A, JoypadButton.B, JoypadButton.L, JoypadButton.R),
+                hint(JoypadButton.A, JoypadButton.B, JoypadButton.X, JoypadButton.Y, JoypadButton.L, JoypadButton.R),
                 hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
                 Component.empty()
                         .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
@@ -115,9 +115,9 @@ public final class EmulatorScreen extends Screen {
             graphics.fill(0, 0, width, height, 0xFF000000);
             int frameWidth = display.width();
             int frameHeight = display.height();
-            float scale = Math.min(width / (float) frameWidth, height / (float) frameHeight);
-            int w = (int) (frameWidth * scale);
-            int h = (int) (frameHeight * scale);
+            float aspect = display.aspectRatio();
+            int w = (int) Math.min(width, height * aspect);
+            int h = (int) (w / aspect);
             graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
         }
 

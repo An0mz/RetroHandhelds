@@ -24,6 +24,11 @@ public final class RetroPaths {
         return ensure(root().resolve("natives"));
     }
 
+    /** Where players can put extra libretro cores; one found here wins over the bundled core. */
+    public static Path cores() {
+        return ensure(root().resolve("cores"));
+    }
+
     public static Path saves() {
         return ensure(root().resolve("saves"));
     }

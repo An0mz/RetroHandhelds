@@ -5,13 +5,13 @@ import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 
 /**
- * JNA binding for the libretro API exported by mgba_libretro.
+ * JNA binding for the libretro API every core exports (mgba_libretro, fceumm_libretro, ...).
  *
  * <p>Type mapping: C {@code unsigned} is {@code int}; {@code size_t} is {@code long} (only 64-bit
  * platforms are supported); C99 {@code bool} is {@code byte}, because JNA's {@code boolean} reads a
  * full int and the upper bytes of a bool return register are not guaranteed to be zero.
  */
-public interface MgbaCore extends Library {
+public interface LibretroCore extends Library {
     interface EnvironmentCallback extends Callback {
         byte callback(int cmd, Pointer data);
     }
@@ -57,6 +57,8 @@ public interface MgbaCore extends Library {
     byte retro_load_game(RetroGameInfo game);
 
     void retro_unload_game();
+
+    void retro_get_system_info(RetroSystemInfo info);
 
     void retro_get_system_av_info(RetroSystemAvInfo info);
 

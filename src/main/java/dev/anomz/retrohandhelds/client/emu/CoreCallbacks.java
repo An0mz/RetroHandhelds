@@ -10,7 +10,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 
 /**
  * The frontend side of libretro. Every callback catches everything, since an exception must never
@@ -18,12 +18,12 @@ import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
  */
 final class CoreCallbacks {
     // Fields, not locals: JNA only keeps weak references, and the core keeps calling these.
-    final MgbaCore.EnvironmentCallback environment = this::environment;
-    final MgbaCore.VideoRefreshCallback videoRefresh = this::videoRefresh;
-    final MgbaCore.AudioSampleCallback audioSample = this::audioSample;
-    final MgbaCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
-    final MgbaCore.InputPollCallback inputPoll = this::inputPoll;
-    final MgbaCore.InputStateCallback inputState = this::inputState;
+    final LibretroCore.EnvironmentCallback environment = this::environment;
+    final LibretroCore.VideoRefreshCallback videoRefresh = this::videoRefresh;
+    final LibretroCore.AudioSampleCallback audioSample = this::audioSample;
+    final LibretroCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
+    final LibretroCore.InputPollCallback inputPoll = this::inputPoll;
+    final LibretroCore.InputStateCallback inputState = this::inputState;
 
     private final FrameBuffer frames;
     private final JoypadState joypad;
@@ -34,11 +34,18 @@ final class CoreCallbacks {
     private final CoreOptions options;
     private final Memory systemDir;
     private final Memory saveDir;
-    private final int[] row32 = new int[FrameBuffer.WIDTH];
-    private final short[] row16 = new short[FrameBuffer.WIDTH];
+    // Grown on demand: frames bigger than the buffer (SNES hi-res, 512 wide) send wider rows.
+    private int[] row32 = new int[FrameBuffer.WIDTH];
+    private short[] row16 = new short[FrameBuffer.WIDTH];
+    /** A frame too big for the buffer, decoded whole before it is scaled down. */
+    private int[] oversized = new int[0];
+    private final FrameScaler scaler = new FrameScaler();
+    private final int[] scaledSize = new int[2];
     private final short[] audioScratch = new short[4096];
     private final short[] audioPair = new short[2];
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
+    /** Display shape the core asks for (Genesis 4:3 although its pixels are 320x224); 0 means square pixels. */
+    private volatile float aspectRatio;
     private int polledButtons;
     /** Keep 1 of every N audio frames while fast-forwarding, so sound plays sped up instead of piling up. */
     private int audioDecimation = 1;
@@ -69,6 +76,16 @@ final class CoreCallbacks {
                         return FALSE;
                     }
                     pixelFormat = format;
+                    return TRUE;
+                }
+                case ENVIRONMENT_GET_CAN_DUPE -> {
+                    // videoRefresh already treats a NULL frame as "same as last time".
+                    data.setByte(0, TRUE);
+                    return TRUE;
+                }
+                case ENVIRONMENT_SET_GEOMETRY, ENVIRONMENT_SET_SYSTEM_AV_INFO -> {
+                    // Frame sizes are taken per frame anyway; only the shape needs remembering.
+                    setAspectRatio(data.getFloat(GEOMETRY_ASPECT_RATIO_OFFSET));
                     return TRUE;
                 }
                 case ENVIRONMENT_GET_SYSTEM_DIRECTORY -> {
@@ -109,29 +126,59 @@ final class CoreCallbacks {
         if (data == null) {
             return;
         }
+        if (width <= 0 || height <= 0) {
+            return;
+        }
         try {
-            int w = Math.min(width, FrameBuffer.WIDTH);
-            int h = Math.min(height, FrameBuffer.HEIGHT);
-            int[] dst = frames.back();
-            for (int y = 0; y < h; y++) {
-                int out = y * FrameBuffer.WIDTH;
-                long offset = y * pitch;
-                if (pixelFormat == PIXEL_FORMAT_XRGB8888) {
-                    data.read(offset, row32, 0, w);
-                    for (int x = 0; x < w; x++) {
-                        dst[out + x] = xrgb8888ToAbgr(row32[x]);
-                    }
-                } else {
-                    data.read(offset, row16, 0, w);
-                    boolean rgb565 = pixelFormat == PIXEL_FORMAT_RGB565;
-                    for (int x = 0; x < w; x++) {
-                        dst[out + x] = rgb565 ? rgb565ToAbgr(row16[x]) : xrgb1555ToAbgr(row16[x]);
-                    }
-                }
+            if (width <= FrameBuffer.WIDTH && height <= FrameBuffer.HEIGHT) {
+                copyFrame(data, width, height, pitch);
+            } else {
+                downscaleFrame(data, width, height, pitch);
             }
-            frames.publish(w, h);
         } catch (Throwable t) {
             logOnce("video refresh", t);
+        }
+    }
+
+    private void copyFrame(Pointer data, int width, int height, long pitch) {
+        int[] dst = frames.back();
+        for (int y = 0; y < height; y++) {
+            decodeRow(data, y * pitch, width, dst, y * FrameBuffer.WIDTH);
+        }
+        frames.publish(width, height);
+    }
+
+    private void downscaleFrame(Pointer data, int width, int height, long pitch) {
+        if (oversized.length < width * height) {
+            oversized = new int[width * height];
+        }
+        for (int y = 0; y < height; y++) {
+            decodeRow(data, y * pitch, width, oversized, y * width);
+        }
+        FrameScaler.fit(width, height, FrameBuffer.WIDTH, FrameBuffer.HEIGHT, scaledSize);
+        scaler.scale(oversized, width, width, height, frames.back(), FrameBuffer.WIDTH, scaledSize[0], scaledSize[1]);
+        frames.publish(scaledSize[0], scaledSize[1]);
+    }
+
+    /** Converts {@code width} pixels of one source row to ABGR, written to {@code dst} from {@code dstOffset}. */
+    private void decodeRow(Pointer data, long offset, int width, int[] dst, int dstOffset) {
+        if (pixelFormat == PIXEL_FORMAT_XRGB8888) {
+            if (row32.length < width) {
+                row32 = new int[width];
+            }
+            data.read(offset, row32, 0, width);
+            for (int x = 0; x < width; x++) {
+                dst[dstOffset + x] = xrgb8888ToAbgr(row32[x]);
+            }
+        } else {
+            if (row16.length < width) {
+                row16 = new short[width];
+            }
+            data.read(offset, row16, 0, width);
+            boolean rgb565 = pixelFormat == PIXEL_FORMAT_RGB565;
+            for (int x = 0; x < width; x++) {
+                dst[dstOffset + x] = rgb565 ? rgb565ToAbgr(row16[x]) : xrgb1555ToAbgr(row16[x]);
+            }
         }
     }
 
@@ -154,6 +201,14 @@ final class CoreCallbacks {
             logOnce("audio batch", t);
         }
         return frameCount;
+    }
+
+    void setAspectRatio(float aspectRatio) {
+        this.aspectRatio = aspectRatio > 0 && aspectRatio < 10 ? aspectRatio : 0;
+    }
+
+    float aspectRatio() {
+        return aspectRatio;
     }
 
     void setShareAudio(boolean share) {

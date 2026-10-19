@@ -40,16 +40,16 @@ class SafetyChecksTest {
     @Test
     void saveIdsStayInsideTheSavesFolder() {
         Path saves = Path.of("saves");
-        assertTrue(SaveFiles.forId(saves, "9d17dff2-6061-4101-9138-1cb965502b6c").isPresent());
-        assertFalse(SaveFiles.forId(saves, "../escape").isPresent());
-        assertFalse(SaveFiles.forId(saves, "..").isPresent());
-        assertFalse(SaveFiles.forId(saves, "a/b").isPresent());
-        assertFalse(SaveFiles.forId(saves, "").isPresent());
+        assertTrue(SaveFiles.forId(saves, "9d17dff2-6061-4101-9138-1cb965502b6c", "mgba").isPresent());
+        assertFalse(SaveFiles.forId(saves, "../escape", "mgba").isPresent());
+        assertFalse(SaveFiles.forId(saves, "..", "mgba").isPresent());
+        assertFalse(SaveFiles.forId(saves, "a/b", "mgba").isPresent());
+        assertFalse(SaveFiles.forId(saves, "", "mgba").isPresent());
     }
 
     @Test
     void saveIdFromNameIsAlwaysSafe() {
         String id = SaveFiles.idFromName("standalone_", "../We!rd Name (USA).gba");
-        assertTrue(SaveFiles.forId(Path.of("saves"), id).isPresent(), id);
+        assertTrue(SaveFiles.forId(Path.of("saves"), id, "mgba").isPresent(), id);
     }
 }

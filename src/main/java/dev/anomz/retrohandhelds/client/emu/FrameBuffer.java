@@ -1,13 +1,14 @@
 package dev.anomz.retrohandhelds.client.emu;
 
 /**
- * Double buffer of up to 240x160 ABGR pixels (the layout {@code NativeImage.setPixelRGBA} expects).
- * A smaller frame (160x144 for Game Boy games) fills the top-left corner. The emulator thread
+ * Double buffer of up to 320x240 ABGR pixels (the layout {@code NativeImage.setPixelRGBA} expects).
+ * A smaller frame (240x160 GBA, 256x224 SNES, 160x144 Game Boy) fills the top-left corner; a bigger
+ * one (SNES hi-res, 512 wide) is scaled down to fit, keeping its shape. The emulator thread
  * fills {@link #back()} and swaps; any other thread copies the front buffer.
  */
 public final class FrameBuffer {
-    public static final int WIDTH = 240;
-    public static final int HEIGHT = 160;
+    public static final int WIDTH = 320;
+    public static final int HEIGHT = 240;
     public static final int PIXELS = WIDTH * HEIGHT;
 
     private final Object lock = new Object();

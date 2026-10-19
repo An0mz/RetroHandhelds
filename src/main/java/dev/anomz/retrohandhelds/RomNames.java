@@ -1,7 +1,5 @@
 package dev.anomz.retrohandhelds;
 
-import java.util.Locale;
-
 /** ROM file names as stored on cartridges. Checked on both sides, since the name arrives from a client. */
 public final class RomNames {
     public static final int MAX_LENGTH = 128;
@@ -22,7 +20,7 @@ public final class RomNames {
     }
 
     public static boolean hasRomExtension(String name) {
-        return name.toLowerCase(Locale.ROOT).matches(".*\\.(gba|gbc|gb)$");
+        return RetroSystem.forFileName(name).isPresent();
     }
 
     /** "Some Game (USA).gba" becomes "Some Game (USA)". */

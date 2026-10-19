@@ -12,6 +12,7 @@ import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.AudioRingBuffer;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
+import dev.anomz.retrohandhelds.client.emu.FrameScaler;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
@@ -121,6 +122,10 @@ public final class ScreenBroadcaster {
         AudioCodec.Downmixer downmixer = null;
         int[] pixels = new int[FrameBuffer.PIXELS];
         int[] size = {FrameBuffer.WIDTH, FrameBuffer.HEIGHT};
+        // The wire format is smaller than the local picture: bigger games are scaled down to fit it.
+        FrameScaler scaler = new FrameScaler();
+        int[] shared = new int[ScreenStrips.MAX_WIDTH * ScreenStrips.MAX_HEIGHT];
+        int[] sharedSize = new int[2];
         short[] stereo = new short[1 << 16];
         short[] mono = new short[AudioCodec.PACKET_SAMPLES * 4];
         int monoCount = 0;
@@ -174,9 +179,11 @@ public final class ScreenBroadcaster {
                     long frame = current.session().frames().copyIfNewer(pixels, lastFrame, size);
                     if (frame != lastFrame) {
                         lastFrame = frame;
-                        int width = size[0];
-                        int height = size[1];
-                        strips.encode(pixels, width, height,
+                        FrameScaler.fit(size[0], size[1], ScreenStrips.MAX_WIDTH, ScreenStrips.MAX_HEIGHT, sharedSize);
+                        int width = sharedSize[0];
+                        int height = sharedSize[1];
+                        scaler.scale(pixels, FrameBuffer.WIDTH, size[0], size[1], shared, ScreenStrips.MAX_WIDTH, width, height);
+                        strips.encode(shared, width, height,
                                 (strip, data) -> send(new ShareStripPayload(handheld, pos, width, height, strip, data)));
                     }
                 }

@@ -24,6 +24,9 @@ public enum JoypadButton {
     RIGHT("right", "Right", DEVICE_ID_JOYPAD_RIGHT, GLFW.GLFW_KEY_RIGHT),
     A("a", "A", DEVICE_ID_JOYPAD_A, GLFW.GLFW_KEY_X),
     B("b", "B", DEVICE_ID_JOYPAD_B, GLFW.GLFW_KEY_Z),
+    // SNES X / Y; Genesis 6-button pads use them too. GBA and Game Boy games ignore them.
+    X("x", "X", DEVICE_ID_JOYPAD_X, GLFW.GLFW_KEY_D),
+    Y("y", "Y", DEVICE_ID_JOYPAD_Y, GLFW.GLFW_KEY_C),
     L("l", "L", DEVICE_ID_JOYPAD_L, GLFW.GLFW_KEY_A),
     R("r", "R", DEVICE_ID_JOYPAD_R, GLFW.GLFW_KEY_S),
     START("start", "Start", DEVICE_ID_JOYPAD_START, GLFW.GLFW_KEY_ENTER),

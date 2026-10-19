@@ -14,9 +14,10 @@ import com.sun.jna.Memory;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
 import dev.anomz.retrohandhelds.client.audio.AudioOutput;
-import dev.anomz.retrohandhelds.client.libretro.MgbaCore;
+import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 import dev.anomz.retrohandhelds.client.libretro.RetroGameInfo;
 import dev.anomz.retrohandhelds.client.libretro.RetroSystemAvInfo;
+import dev.anomz.retrohandhelds.client.libretro.RetroSystemInfo;
 
 /**
  * Runs one ROM on a dedicated thread. Every native call happens on that thread, from
@@ -30,7 +31,7 @@ public final class EmulatorSession {
     private static final double GBA_FPS = 59.7275;
     private static final int MAX_FRAMES_BEHIND = 5;
     private static final long JOIN_TIMEOUT_MS = 2000;
-    /** Half a second of stereo audio at mGBA's 65536 Hz output rate. */
+    /** Half a second of stereo audio at mGBA's 65536 Hz output rate; longer at other cores' lower rates. */
     private static final int AUDIO_RING_SAMPLES = 1 << 16;
     /** How often save RAM is compared with the file; also written when the session stops. */
     private static final long SAVE_RAM_CHECK_NANOS = TimeUnit.SECONDS.toNanos(5);
@@ -40,7 +41,7 @@ public final class EmulatorSession {
     private record StateRequest(boolean save, CompletableFuture<StateResult> result) {
     }
 
-    private final MgbaCore core;
+    private final LibretroCore core;
     private final Path rom;
     private final FrameBuffer frames = new FrameBuffer();
     private final JoypadState joypad = new JoypadState();
@@ -73,7 +74,7 @@ public final class EmulatorSession {
     private SaveStates resumeState;
     private volatile boolean resumed;
 
-    private EmulatorSession(MgbaCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves,
+    private EmulatorSession(LibretroCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves,
             boolean withSound, CoreOptions options, boolean resume) {
         this.core = core;
         this.rom = rom;
@@ -92,7 +93,7 @@ public final class EmulatorSession {
      * @param resume continue from where the game last stopped, and save that point again when it stops
      * @throws IllegalStateException if another session is still active
      */
-    public static EmulatorSession start(MgbaCore core, Path rom, Path systemDir, Path saveDir,
+    public static EmulatorSession start(LibretroCore core, Path rom, Path systemDir, Path saveDir,
             @Nullable SaveFiles saves, boolean withSound, CoreOptions options, boolean resume) {
         EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound, options, resume);
         if (!ACTIVE.compareAndSet(null, session)) {
@@ -143,6 +144,11 @@ public final class EmulatorSession {
     /** The shared copy of the sound (interleaved stereo at {@link #sampleRate()}); read by the sharer only. */
     public AudioRingBuffer sharedAudio() {
         return sharedAudio;
+    }
+
+    /** Width / height the picture should be shown at, or 0 to use its pixel size. Safe to call from any thread. */
+    public float aspectRatio() {
+        return callbacks.aspectRatio();
     }
 
     /** The core's sound sample rate, or 0 until the game has loaded. */
@@ -233,10 +239,15 @@ public final class EmulatorSession {
             core.retro_init();
             initialized = true;
 
+            RetroSystemInfo info = new RetroSystemInfo();
+            core.retro_get_system_info(info);
             gameInfo = new RetroGameInfo();
             gameInfo.path = rom.toAbsolutePath().toString();
-            gameInfo.data = romData;
-            gameInfo.size = bytes.length;
+            // Cores that need the full path read the file themselves and must get no data.
+            if (info.needFullpath == 0) {
+                gameInfo.data = romData;
+                gameInfo.size = bytes.length;
+            }
             if (core.retro_load_game(gameInfo) == 0) {
                 fail("The core could not load " + rom.getFileName());
                 return;
@@ -248,6 +259,10 @@ public final class EmulatorSession {
                 saveStates = new SaveStates(core, saves.state());
                 if (resume) {
                     resumeState = new SaveStates(core, saves.resume());
+                    // Some cores (BlastEm) only power the console on in their first retro_run, which
+                    // would wipe a state loaded before it. One frame first, unseen and unheard.
+                    core.retro_run();
+                    audio.skip(audio.available());
                     // After the game's own save is loaded: the state restores everything, save RAM included.
                     resumed = resumeState.load() == StateResult.LOADED;
                     if (resumed) {
@@ -262,6 +277,7 @@ public final class EmulatorSession {
             RetroHandhelds.LOGGER.info("Retro Handhelds: running {} ({}x{} @ {} fps, audio {} Hz)",
                     rom.getFileName(), av.geometry.baseWidth, av.geometry.baseHeight, fps, av.timing.sampleRate);
             sampleRate = (int) av.timing.sampleRate;
+            callbacks.setAspectRatio(av.geometry.aspectRatio);
             if (withSound) {
                 audioOutput = AudioOutput.open(audio, (int) av.timing.sampleRate).orElse(null);
             }

@@ -8,7 +8,6 @@ import com.mojang.math.Axis;
 
 import dev.anomz.retrohandhelds.block.TvBlockEntity;
 import dev.anomz.retrohandhelds.block.TvLayout;
-import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.ScreenImage;
 import dev.anomz.retrohandhelds.client.share.RemoteScreens;
@@ -54,7 +53,7 @@ public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         // Picture rectangle in screen coordinates (blocks; x from the viewer's left, y up), letterboxed.
         float areaW = layout.cols() - 2 * BEZEL;
         float areaH = layout.rows() - 2 * BEZEL;
-        float aspect = display.width() / (float) display.height();
+        float aspect = display.aspectRatio();
         float picW = Math.min(areaW, areaH * aspect);
         float picH = picW / aspect;
         float picX0 = (layout.cols() - picW) / 2;
@@ -68,8 +67,8 @@ public final class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         if (x0 >= x1 || y0 >= y1) {
             return;
         }
-        float uMax = display.width() / (float) FrameBuffer.WIDTH;
-        float vMax = display.height() / (float) FrameBuffer.HEIGHT;
+        float uMax = display.width() / (float) display.textureWidth();
+        float vMax = display.height() / (float) display.textureHeight();
         float u0 = (x0 - picX0) / picW * uMax;
         float u1 = (x1 - picX0) / picW * uMax;
         float vTop = (picY0 + picH - y1) / picH * vMax;
