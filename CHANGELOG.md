@@ -77,5 +77,6 @@ First public release, for Minecraft 1.21.1 with NeoForge.
   compressed picture and sound within limits the server owner sets.
 - Server settings to turn consoles, handhelds or screen sharing off, and to limit sharing bandwidth.
 
+[1.2.0]: https://github.com/An0mz/RetroHandhelds/compare/f61872c...f711bb9
 [1.1.0]: https://github.com/An0mz/RetroHandhelds/compare/3cc638f...f61872c
 [1.0.0]: https://github.com/An0mz/RetroHandhelds/tree/3cc638f
