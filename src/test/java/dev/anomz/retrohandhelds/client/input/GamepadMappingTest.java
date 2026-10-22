@@ -65,6 +65,40 @@ class GamepadMappingTest {
     }
 
     @Test
+    void triggersAreL2R2WhenTheSystemHasThem() {
+        byte[] buttons = new byte[GLFW_GAMEPAD_BUTTON_LAST + 1];
+        float[] axes = new float[GLFW_GAMEPAD_AXIS_LAST + 1];
+        axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = 1;
+        axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = 1;
+        assertEquals(bits(DEVICE_ID_JOYPAD_L2, DEVICE_ID_JOYPAD_R2),
+                GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, true, true));
+    }
+
+    @Test
+    void stickClicksAreL3R3() {
+        assertEquals(bits(DEVICE_ID_JOYPAD_L3, DEVICE_ID_JOYPAD_R3),
+                map(GLFW_GAMEPAD_BUTTON_LEFT_THUMB, GLFW_GAMEPAD_BUTTON_RIGHT_THUMB));
+    }
+
+    @Test
+    void analogOnlyStickLeavesTheDpadAlone() {
+        byte[] buttons = new byte[GLFW_GAMEPAD_BUTTON_LAST + 1];
+        float[] axes = new float[GLFW_GAMEPAD_AXIS_LAST + 1];
+        axes[GLFW_GAMEPAD_AXIS_LEFT_X] = 1;
+        axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] = -1;
+        axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] = -1;
+        assertEquals(0, GamepadMapping.toRetroMask(buttons, axes, DEADZONE, false, false, true));
+    }
+
+    @Test
+    void axesRespectDeadzoneAndReachFullTilt() {
+        assertEquals(0, GamepadMapping.toAxis(0.3f, DEADZONE));
+        assertEquals(0x7FFF, GamepadMapping.toAxis(1, DEADZONE));
+        assertEquals(-0x7FFF, GamepadMapping.toAxis(-1, DEADZONE));
+        assertEquals(0x7FFF / 2, GamepadMapping.toAxis(0.675f, DEADZONE), 2);
+    }
+
+    @Test
     void startAndSelect() {
         assertEquals(bits(DEVICE_ID_JOYPAD_START, DEVICE_ID_JOYPAD_SELECT),
                 map(GLFW_GAMEPAD_BUTTON_START, GLFW_GAMEPAD_BUTTON_BACK));

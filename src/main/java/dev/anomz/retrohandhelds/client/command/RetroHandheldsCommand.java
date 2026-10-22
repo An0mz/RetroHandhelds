@@ -62,7 +62,7 @@ public final class RetroHandheldsCommand {
             return 0;
         }
         RetroSystem system = RetroSystem.forFileName(name).orElseThrow();
-        Optional<NativeLoader.LoadedCore> core = NativeLoader.load(system);
+        Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
         if (core.isEmpty()) {
             source.sendFailure(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
                     RetroPaths.cores().toString()));
@@ -70,8 +70,8 @@ public final class RetroHandheldsCommand {
         }
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get().api(), rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
-                    new CoreOptions(false, false), false);
+            session = EmulatorSession.start(core.get().api(), system, rom.get(), RetroPaths.system(), RetroPaths.saves(), null, false,
+                    new CoreOptions(false, false, system.coreOptions()), false);
         } catch (IllegalStateException e) {
             source.sendFailure(Component.translatable("message.retrohandhelds.busy"));
             return 0;

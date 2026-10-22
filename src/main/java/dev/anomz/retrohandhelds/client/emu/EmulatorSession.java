@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import com.sun.jna.Memory;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroSystem;
 import dev.anomz.retrohandhelds.client.audio.AudioOutput;
 import dev.anomz.retrohandhelds.client.libretro.LibretroCore;
 import dev.anomz.retrohandhelds.client.libretro.RetroGameInfo;
@@ -42,6 +43,7 @@ public final class EmulatorSession {
     }
 
     private final LibretroCore core;
+    private final RetroSystem system;
     private final Path rom;
     private final FrameBuffer frames = new FrameBuffer();
     private final JoypadState joypad = new JoypadState();
@@ -61,6 +63,7 @@ public final class EmulatorSession {
     private volatile String failure;
     private volatile float volume = 1f;
     private volatile boolean paused;
+    private volatile boolean resetRequested;
     private volatile int speed = 1;
     /** Set once the emulator thread can no longer answer state requests. */
     private volatile boolean finished;
@@ -74,9 +77,10 @@ public final class EmulatorSession {
     private SaveStates resumeState;
     private volatile boolean resumed;
 
-    private EmulatorSession(LibretroCore core, Path rom, Path systemDir, Path saveDir, @Nullable SaveFiles saves,
-            boolean withSound, CoreOptions options, boolean resume) {
+    private EmulatorSession(LibretroCore core, RetroSystem system, Path rom, Path systemDir, Path saveDir,
+            @Nullable SaveFiles saves, boolean withSound, CoreOptions options, boolean resume) {
         this.core = core;
+        this.system = system;
         this.rom = rom;
         this.saves = saves;
         this.withSound = withSound;
@@ -93,9 +97,9 @@ public final class EmulatorSession {
      * @param resume continue from where the game last stopped, and save that point again when it stops
      * @throws IllegalStateException if another session is still active
      */
-    public static EmulatorSession start(LibretroCore core, Path rom, Path systemDir, Path saveDir,
+    public static EmulatorSession start(LibretroCore core, RetroSystem system, Path rom, Path systemDir, Path saveDir,
             @Nullable SaveFiles saves, boolean withSound, CoreOptions options, boolean resume) {
-        EmulatorSession session = new EmulatorSession(core, rom, systemDir, saveDir, saves, withSound, options, resume);
+        EmulatorSession session = new EmulatorSession(core, system, rom, systemDir, saveDir, saves, withSound, options, resume);
         if (!ACTIVE.compareAndSet(null, session)) {
             throw new IllegalStateException("An emulator session is already running");
         }
@@ -125,6 +129,10 @@ public final class EmulatorSession {
         if (thread.isAlive()) {
             RetroHandhelds.LOGGER.warn("Retro Handhelds: emulator thread did not stop within {} ms", JOIN_TIMEOUT_MS);
         }
+    }
+
+    public RetroSystem system() {
+        return system;
     }
 
     public FrameBuffer frames() {
@@ -172,6 +180,12 @@ public final class EmulatorSession {
     /** Gain for the emulator's sound, 0..1. Safe to call from any thread. */
     public void setVolume(float volume) {
         this.volume = volume;
+    }
+
+    /** Restarts the game, like the console's reset button, between frames. Safe to call from any thread. */
+    public void reset() {
+        resetRequested = true;
+        LockSupport.unpark(thread);
     }
 
     /** Saves a state between frames. Completes on the emulator thread. */
@@ -226,10 +240,6 @@ public final class EmulatorSession {
         boolean initialized = false;
         boolean loaded = false;
         try {
-            byte[] bytes = Files.readAllBytes(rom);
-            romData = new Memory(bytes.length);
-            romData.write(0, bytes, 0, bytes.length);
-
             core.retro_set_environment(callbacks.environment);
             core.retro_init();
             initialized = true;
@@ -244,16 +254,24 @@ public final class EmulatorSession {
             core.retro_get_system_info(info);
             gameInfo = new RetroGameInfo();
             gameInfo.path = rom.toAbsolutePath().toString();
-            // Cores that need the full path read the file themselves and must get no data.
+            // Cores that need the full path read the file themselves and must get no data; for disc
+            // images that also keeps hundreds of megabytes out of memory.
             if (info.needFullpath == 0) {
+                byte[] bytes = Files.readAllBytes(rom);
+                romData = new Memory(bytes.length);
+                romData.write(0, bytes, 0, bytes.length);
                 gameInfo.data = romData;
                 gameInfo.size = bytes.length;
             }
             if (core.retro_load_game(gameInfo) == 0) {
-                fail("The core could not load " + rom.getFileName());
+                fail("The core could not load " + rom.getFileName() + (system.biosFiles().isEmpty() ? ""
+                        : ". BIOS files it may need, in retro_handhelds/system/: " + String.join(", ", system.biosFiles())));
                 return;
             }
             loaded = true;
+            if (system.controllerDevice() != 0) {
+                core.retro_set_controller_port_device(0, system.controllerDevice());
+            }
             if (saves != null) {
                 saveRam = new SaveRam(core, saves.saveRam());
                 saveRam.load();
@@ -327,6 +345,10 @@ public final class EmulatorSession {
             }
             if (audioOutput != null) {
                 audioOutput.setPaused(false);
+            }
+            if (resetRequested) {
+                resetRequested = false;
+                core.retro_reset();
             }
             int frames = speed;
             callbacks.setAudioDecimation(frames);

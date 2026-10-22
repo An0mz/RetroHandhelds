@@ -8,11 +8,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /** Writes through a temp file and a rename, so a crash mid-write never leaves a half-written save. */
-final class AtomicFiles {
+public final class AtomicFiles {
     private AtomicFiles() {
     }
 
-    static void write(Path target, byte[] data, int length) throws IOException {
+    public static void write(Path target, byte[] data, int length) throws IOException {
         Files.createDirectories(target.getParent());
         Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
         try (OutputStream out = Files.newOutputStream(tmp)) {

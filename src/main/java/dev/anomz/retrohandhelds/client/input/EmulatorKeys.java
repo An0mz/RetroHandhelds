@@ -17,26 +17,30 @@ import net.neoforged.neoforge.client.settings.KeyConflictContext;
  * mute and volume keys, so silencing one never touches the other.
  */
 public final class EmulatorKeys {
+    public static final String CATEGORY = "key.categories.retrohandhelds";
+    /** Turns mouse look off (and on again) while a game is open, to click the screen's buttons. */
+    public static final KeyMapping FREE_MOUSE = new KeyMapping("key.retrohandhelds.free_mouse",
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, CATEGORY);
     public static final KeyMapping SAVE_STATE = new KeyMapping("key.retrohandhelds.save_state",
-            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F5, JoypadButton.CATEGORY);
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F5, CATEGORY);
     public static final KeyMapping LOAD_STATE = new KeyMapping("key.retrohandhelds.load_state",
-            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F9, JoypadButton.CATEGORY);
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F9, CATEGORY);
     public static final KeyMapping FAST_FORWARD = new KeyMapping("key.retrohandhelds.fast_forward",
-            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_TAB, JoypadButton.CATEGORY);
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_TAB, CATEGORY);
     public static final KeyMapping TOGGLE_VIEW = new KeyMapping("key.retrohandhelds.toggle_view",
-            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, JoypadButton.CATEGORY);
+            KeyConflictContext.GUI, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY);
     public static final KeyMapping MUTE = new KeyMapping("key.retrohandhelds.mute",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_M, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_M, CATEGORY);
     public static final KeyMapping VOLUME_DOWN = new KeyMapping("key.retrohandhelds.volume_down",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_MINUS, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_MINUS, CATEGORY);
     public static final KeyMapping VOLUME_UP = new KeyMapping("key.retrohandhelds.volume_up",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_EQUAL, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_EQUAL, CATEGORY);
     public static final KeyMapping MUTE_OTHERS = new KeyMapping("key.retrohandhelds.mute_others",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_N, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_N, CATEGORY);
     public static final KeyMapping OTHERS_VOLUME_DOWN = new KeyMapping("key.retrohandhelds.others_volume_down",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_BRACKET, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_BRACKET, CATEGORY);
     public static final KeyMapping OTHERS_VOLUME_UP = new KeyMapping("key.retrohandhelds.others_volume_up",
-            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_BRACKET, JoypadButton.CATEGORY);
+            KeyConflictContext.UNIVERSAL, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_BRACKET, CATEGORY);
 
     private EmulatorKeys() {
     }
@@ -46,6 +50,7 @@ public final class EmulatorKeys {
         event.register(LOAD_STATE);
         event.register(FAST_FORWARD);
         event.register(TOGGLE_VIEW);
+        event.register(FREE_MOUSE);
         event.register(MUTE);
         event.register(VOLUME_DOWN);
         event.register(VOLUME_UP);

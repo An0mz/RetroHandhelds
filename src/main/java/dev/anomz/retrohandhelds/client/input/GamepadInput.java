@@ -6,7 +6,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFWGamepadState;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
+import dev.anomz.retrohandhelds.RetroSystem;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
+import dev.anomz.retrohandhelds.client.emu.JoypadState;
 
 /**
  * Reads the first connected gamepad through GLFW (bundled with Minecraft). GLFW requires the main
@@ -25,9 +27,28 @@ public final class GamepadInput {
     private GamepadInput() {
     }
 
+    /**
+     * Reads the gamepad into {@code joypad}: its buttons, and its sticks when {@code controls} has
+     * analog sticks. Clears both when no gamepad is connected or gamepads are disabled.
+     */
+    public static void poll(JoypadState joypad, RetroSystem.Controls controls) {
+        int mask = pollMask(controls);
+        joypad.setPad(mask);
+        if (controls.analog && joystick >= 0) {
+            float deadzone = RetroClientConfig.gamepadDeadzone();
+            joypad.setPadAxes(GamepadMapping.toAxis(axes[GLFW_GAMEPAD_AXIS_LEFT_X], deadzone),
+                    GamepadMapping.toAxis(axes[GLFW_GAMEPAD_AXIS_LEFT_Y], deadzone),
+                    GamepadMapping.toAxis(axes[GLFW_GAMEPAD_AXIS_RIGHT_X], deadzone),
+                    GamepadMapping.toAxis(axes[GLFW_GAMEPAD_AXIS_RIGHT_Y], deadzone));
+        } else {
+            joypad.setPadAxes(0, 0, 0, 0);
+        }
+    }
+
     /** The current libretro joypad bitmask from the gamepad, or 0 if none is connected or it is disabled. */
-    public static int poll() {
+    private static int pollMask(RetroSystem.Controls controls) {
         if (!RetroClientConfig.gamepadEnabled()) {
+            joystick = -1;
             return 0;
         }
         try {
@@ -51,7 +72,7 @@ public final class GamepadInput {
                 axes[i] = state.axes(i);
             }
             return GamepadMapping.toRetroMask(buttons, axes, RetroClientConfig.gamepadDeadzone(),
-                    RetroClientConfig.gamepadPositionalAB());
+                    RetroClientConfig.gamepadPositionalAB(), controls.stickPressesDpad, controls.triggersAreL2R2);
         } catch (Throwable t) {
             if (!errorLogged) {
                 errorLogged = true;

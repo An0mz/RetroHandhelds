@@ -22,11 +22,13 @@ public final class SessionDisplay implements ScreenImage, AutoCloseable {
     private final int[] pixels = new int[FrameBuffer.PIXELS];
     private final int[] size = { FrameBuffer.WIDTH, FrameBuffer.HEIGHT };
     private DynamicTexture texture;
+    private final boolean smooth;
     private long lastFrame;
 
     SessionDisplay(EmulatorSession session) {
         this.session = session;
         this.frames = session.frames();
+        this.smooth = session.system().smoothPicture();
         this.texture = new DynamicTexture(FrameBuffer.WIDTH, FrameBuffer.HEIGHT, true);
         // This constructor allocates GPU memory without uploading anything, and drivers may hand back
         // the previous session's freed texture, still showing its last frame. Start from black instead.
@@ -75,12 +77,35 @@ public final class SessionDisplay implements ScreenImage, AutoCloseable {
         }
         lastFrame = frame;
         NativeImage image = texture.getPixels();
-        for (int y = 0; y < FrameBuffer.HEIGHT; y++) {
-            for (int x = 0; x < FrameBuffer.WIDTH; x++) {
+        int width = size[0];
+        int height = size[1];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 image.setPixelRGBA(x, y, pixels[y * FrameBuffer.WIDTH + x]);
             }
         }
-        texture.upload();
+        int uploadWidth = width;
+        int uploadHeight = height;
+        if (smooth) {
+            // Linear filtering blends the edge pixels with the texel beyond them: repeat the last
+            // column and row there, so the picture's right and bottom edges don't fade into old pixels.
+            if (width < FrameBuffer.WIDTH) {
+                for (int y = 0; y < height; y++) {
+                    image.setPixelRGBA(width, y, pixels[y * FrameBuffer.WIDTH + width - 1]);
+                }
+                uploadWidth++;
+            }
+            if (height < FrameBuffer.HEIGHT) {
+                for (int x = 0; x < uploadWidth; x++) {
+                    image.setPixelRGBA(x, height, image.getPixelRGBA(x, height - 1));
+                }
+                uploadHeight++;
+            }
+        }
+        // Only the picture's corner of the texture; blur is linear filtering, clamp stops the left
+        // and top edges from blending with the far side of the texture.
+        texture.bind();
+        image.upload(0, 0, 0, 0, 0, uploadWidth, uploadHeight, smooth, true, false, false);
     }
 
     @Override

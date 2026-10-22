@@ -1,12 +1,15 @@
 package dev.anomz.retrohandhelds.client.emu;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.sun.jna.Memory;
 
 /**
- * The mGBA core options this mod sets. Any thread may call {@link #set}; the emulator thread answers
- * the core's GET_VARIABLE / GET_VARIABLE_UPDATE requests from it. Unlisted options keep mGBA's defaults.
+ * The core options this mod sets: mGBA's two player settings, plus fixed values per system (such as
+ * ParaLLEl-N64's software renderer). Any thread may call {@link #set}; the emulator thread answers
+ * the core's GET_VARIABLE / GET_VARIABLE_UPDATE requests from it. Unlisted options keep the core's defaults.
  */
 public final class CoreOptions {
     static final String COLOR_CORRECTION = "mgba_color_correction";
@@ -17,11 +20,21 @@ public final class CoreOptions {
     private static final Memory AUTO = nativeString("Auto");
     private static final Memory LCD_GHOSTING = nativeString("lcd_ghosting");
 
+    /** Fixed values, as native strings built once; they must outlive every call that returns them. */
+    private final Map<String, Memory> fixed;
     private volatile boolean colorCorrection;
     private volatile boolean lcdGhosting;
     private volatile boolean changed;
 
     public CoreOptions(boolean colorCorrection, boolean lcdGhosting) {
+        this(colorCorrection, lcdGhosting, Map.of());
+    }
+
+    /** @param fixed option values that never change while the game runs, by option key */
+    public CoreOptions(boolean colorCorrection, boolean lcdGhosting, Map<String, String> fixed) {
+        Map<String, Memory> strings = new HashMap<>();
+        fixed.forEach((key, value) -> strings.put(key, nativeString(value)));
+        this.fixed = Map.copyOf(strings);
         this.colorCorrection = colorCorrection;
         this.lcdGhosting = lcdGhosting;
     }
@@ -41,7 +54,7 @@ public final class CoreOptions {
             // "Auto" picks GBA or GBC correction to match the game.
             case COLOR_CORRECTION -> colorCorrection ? AUTO : OFF;
             case INTERFRAME_BLENDING -> lcdGhosting ? LCD_GHOSTING : OFF;
-            default -> null;
+            default -> fixed.get(key);
         };
     }
 

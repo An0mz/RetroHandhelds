@@ -7,9 +7,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import com.sun.jna.Native;
 
@@ -24,9 +27,19 @@ import dev.anomz.retrohandhelds.client.RetroPaths;
  * Any failure is logged and reported as empty.
  */
 public final class NativeLoader {
-    /** A loaded core and the base name it was found under ({@code mgba}, {@code snes9x}, ...). */
-    public record LoadedCore(LibretroCore api, String name) {
+    /** A loaded core, the base name it was found under ({@code mgba}, {@code snes9x}, ...) and its file. */
+    public record LoadedCore(LibretroCore api, String name, Path file) {
     }
+
+    /**
+     * Cores that cannot run a second game in the same process: Mupen64Plus keeps global state that
+     * retro_deinit does not reset (ParaLLEl-N64 never runs again after its first game stops). Each
+     * session gets its own copy of the library instead. Old copies stay loaded, since the core's
+     * worker threads may outlive retro_deinit; their files are deleted on the next start.
+     */
+    private static final Set<String> ONE_GAME_PER_LOAD = Set.of("parallel_n64");
+    /** Libraries a session has already run on. */
+    private static final Set<Path> USED = new HashSet<>();
 
     // Only successes are kept, so a core dropped into the folder later is found on the next try.
     private static final Map<RetroSystem, LoadedCore> CACHE = new EnumMap<>(RetroSystem.class);
@@ -49,12 +62,60 @@ public final class NativeLoader {
     }
 
     /**
+     * A core ready for a new session: the shared one, or a fresh copy for cores that can only run
+     * one game per load.
+     */
+    public static synchronized Optional<LoadedCore> loadForSession(RetroSystem system) {
+        Optional<LoadedCore> loaded = load(system);
+        if (loaded.isEmpty() || !ONE_GAME_PER_LOAD.contains(loaded.get().name()) || USED.add(loaded.get().file())) {
+            return loaded;
+        }
+        LoadedCore shared = loaded.get();
+        try {
+            Path dir = Files.createDirectories(RetroPaths.natives().resolve("instances"));
+            String fileName = shared.file().getFileName().toString();
+            int dot = fileName.lastIndexOf('.');
+            Path copy = Files.createTempFile(dir, fileName.substring(0, dot) + "-", fileName.substring(dot));
+            Files.copy(shared.file(), copy, StandardCopyOption.REPLACE_EXISTING);
+            LibretroCore core = Native.load(copy.toAbsolutePath().toString(), LibretroCore.class);
+            USED.add(copy);
+            RetroHandhelds.LOGGER.info("Retro Handhelds: fresh copy of the {} core for this game: {}", shared.name(), copy);
+            return Optional.of(new LoadedCore(core, shared.name(), copy));
+        } catch (Throwable t) {
+            RetroHandhelds.LOGGER.error("Retro Handhelds: could not load a fresh copy of the {} core", shared.name(), t);
+            return Optional.empty();
+        }
+    }
+
+    /** Deletes the core copies of earlier runs. Nothing has loaded them yet in this process. */
+    private static synchronized void deleteOldCopies() {
+        Path dir = RetroPaths.natives().resolve("instances");
+        if (!Files.isDirectory(dir)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(dir)) {
+            files.forEach(file -> {
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException e) {
+                    // Still loaded by another game instance sharing this folder; try again next time.
+                }
+            });
+        } catch (IOException e) {
+            RetroHandhelds.LOGGER.warn("Retro Handhelds: could not clean up {}", dir, e);
+        }
+    }
+
+    /**
      * Loads the GBA core on a background thread during startup. Reading the library from the jar and
      * loading it takes long enough to freeze the game for a moment if it first happens on a click.
      * A click while this is still running simply waits for it ({@link #load} is synchronized).
      */
     public static void preloadAsync() {
-        Thread thread = new Thread(() -> load(RetroSystem.GAME_BOY_ADVANCE), "RetroHandhelds-CoreLoader");
+        Thread thread = new Thread(() -> {
+            deleteOldCopies();
+            load(RetroSystem.GAME_BOY_ADVANCE);
+        }, "RetroHandhelds-CoreLoader");
         thread.setDaemon(true);
         thread.start();
     }
@@ -70,17 +131,18 @@ public final class NativeLoader {
                 LibretroCore core = Native.load(file.toAbsolutePath().toString(), LibretroCore.class);
                 RetroHandhelds.LOGGER.info("Loaded {} core {} (libretro API {}) from {}", system.displayName(), name,
                         core.retro_api_version(), file);
-                return new LoadedCore(core, name);
+                return new LoadedCore(core, name, file);
             } catch (Throwable t) {
                 RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the core {}", file, t);
             }
         }
         try {
             Path nativesDir = RetroPaths.natives();
-            LibretroCore core = loadInto(nativesDir, system.bundledCore());
+            Path file = extractBundled(nativesDir, system.bundledCore());
+            LibretroCore core = Native.load(file.toAbsolutePath().toString(), LibretroCore.class);
             RetroHandhelds.LOGGER.info("Loaded bundled {} core {} (libretro API {}) into {}", system.displayName(),
                     system.bundledCore(), core.retro_api_version(), nativesDir);
-            return new LoadedCore(core, system.bundledCore());
+            return new LoadedCore(core, system.bundledCore(), file);
         } catch (Throwable t) {
             RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the bundled {} core", system.displayName(), t);
             return null;
@@ -96,6 +158,11 @@ public final class NativeLoader {
      * @throws IOException if the core is missing from the jar or cannot be written
      */
     public static LibretroCore loadInto(Path nativesDir, String coreName) throws IOException {
+        return Native.load(extractBundled(nativesDir, coreName).toAbsolutePath().toString(), LibretroCore.class);
+    }
+
+    /** Extracts this platform's bundled core {@code <coreName>_libretro} and returns where it is. */
+    private static Path extractBundled(Path nativesDir, String coreName) throws IOException {
         String os = osKey();
         String arch = archKey();
         if (os == null || arch == null) {
@@ -109,8 +176,7 @@ public final class NativeLoader {
             if (in == null) {
                 throw new IOException("Native core " + resource + " is missing from the mod jar");
             }
-            Path target = extract(in.readAllBytes(), nativesDir.resolve(platform).resolve(fileName));
-            return Native.load(target.toAbsolutePath().toString(), LibretroCore.class);
+            return extract(in.readAllBytes(), nativesDir.resolve(platform).resolve(fileName));
         }
     }
 

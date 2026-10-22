@@ -97,7 +97,7 @@ public final class ConsoleSessions {
         }
         // RomLibrary only resolves names with a known system's extension.
         RetroSystem system = RetroSystem.forFileName(romFile).orElseThrow();
-        Optional<NativeLoader.LoadedCore> core = NativeLoader.load(system);
+        Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
         if (core.isEmpty()) {
             onError.accept(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
                     RetroPaths.cores().toString()));
@@ -112,8 +112,8 @@ public final class ConsoleSessions {
         stop();
         EmulatorSession session;
         try {
-            session = EmulatorSession.start(core.get().api(), rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
-                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting()),
+            session = EmulatorSession.start(core.get().api(), system, rom.get(), RetroPaths.system(), RetroPaths.saves(), saves, true,
+                    new CoreOptions(RetroClientConfig.colorCorrection(), RetroClientConfig.lcdGhosting(), system.coreOptions()),
                     RetroClientConfig.resumeGames());
         } catch (IllegalStateException e) {
             onError.accept(Component.translatable("message.retrohandhelds.busy"));

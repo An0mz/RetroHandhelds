@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,12 +27,44 @@ class RetroSystemTest {
     }
 
     @Test
+    void newSystemsComeFromTheirExtensions() {
+        assertEquals(Optional.of(RetroSystem.N64), RetroSystem.forFileName("Super Mario 64 (USA).z64"));
+        assertEquals(Optional.of(RetroSystem.N64), RetroSystem.forFileName("Game.v64"));
+        assertEquals(Optional.of(RetroSystem.PLAYSTATION), RetroSystem.forFileName("Game (Disc 1).cue"));
+        assertEquals(Optional.of(RetroSystem.PLAYSTATION), RetroSystem.forFileName("Game.chd"));
+        assertEquals(Optional.of(RetroSystem.NINTENDO_DS), RetroSystem.forFileName("Game.nds"));
+        assertEquals(Optional.of(RetroSystem.SEGA_32X), RetroSystem.forFileName("Game.32x"));
+        assertEquals(Optional.of(RetroSystem.MASTER_SYSTEM), RetroSystem.forFileName("Game.sg"));
+        assertEquals(Optional.of(RetroSystem.WONDERSWAN), RetroSystem.forFileName("Game.wsc"));
+        assertEquals(Optional.of(RetroSystem.POKEMON_MINI), RetroSystem.forFileName("Game.min"));
+    }
+
+    @Test
+    void noExtensionBelongsToTwoSystems() {
+        Set<String> seen = new HashSet<>();
+        for (RetroSystem system : RetroSystem.values()) {
+            for (String extension : system.extensions()) {
+                assertTrue(seen.add(extension), "." + extension + " is claimed twice");
+            }
+        }
+    }
+
+    @Test
+    void analogSystemsUseL2R2() {
+        assertTrue(RetroSystem.N64.controls().analog);
+        assertFalse(RetroSystem.N64.controls().stickPressesDpad);
+        assertTrue(RetroSystem.PLAYSTATION.controls().triggersAreL2R2);
+        assertTrue(RetroSystem.NINTENDO_DS.controls().touch());
+        assertFalse(RetroSystem.NES.controls().analog);
+    }
+
+    @Test
     void unknownOrAmbiguousExtensionsAreRejected() {
         assertEquals(Optional.empty(), RetroSystem.forFileName("Game.bin"));
         assertEquals(Optional.empty(), RetroSystem.forFileName("Game"));
         assertEquals(Optional.empty(), RetroSystem.forFileName("Game.gba.txt"));
         assertTrue(RomNames.isValid("Game.sms"));
-        assertFalse(RomNames.isValid("Game.n64"));
+        assertFalse(RomNames.isValid("Game.iso"));
     }
 
     @Test

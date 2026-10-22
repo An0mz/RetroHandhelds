@@ -36,6 +36,14 @@ public interface LibretroCore extends Library {
         short callback(int port, int device, int index, int id);
     }
 
+    /**
+     * {@code retro_log_printf_t}, which is variadic: only the fixed level and format arguments are
+     * read, which every supported calling convention passes the same way as for a plain function.
+     */
+    interface LogCallback extends Callback {
+        void callback(int level, Pointer format);
+    }
+
     int retro_api_version();
 
     void retro_set_environment(EnvironmentCallback callback);
@@ -60,7 +68,11 @@ public interface LibretroCore extends Library {
 
     void retro_get_system_info(RetroSystemInfo info);
 
+    void retro_set_controller_port_device(int port, int device);
+
     void retro_get_system_av_info(RetroSystemAvInfo info);
+
+    void retro_reset();
 
     void retro_run();
 

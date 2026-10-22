@@ -38,6 +38,11 @@ public final class RetroPaths {
         return ensure(root().resolve("system"));
     }
 
+    /** Every console's key bindings and mouse look settings. */
+    public static Path controls() {
+        return root().resolve("controls.json");
+    }
+
     public static Path debugFrame() {
         return root().resolve("debug_frame.png");
     }

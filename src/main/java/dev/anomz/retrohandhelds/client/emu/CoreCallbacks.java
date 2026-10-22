@@ -5,6 +5,7 @@ import static dev.anomz.retrohandhelds.client.libretro.LibretroConstants.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
+import com.sun.jna.CallbackReference;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -24,6 +25,9 @@ final class CoreCallbacks {
     final LibretroCore.AudioSampleBatchCallback audioSampleBatch = this::audioSampleBatch;
     final LibretroCore.InputPollCallback inputPoll = this::inputPoll;
     final LibretroCore.InputStateCallback inputState = this::inputState;
+    final LibretroCore.LogCallback log = this::log;
+    /** {@code struct retro_log_callback}: one function pointer, handed to cores that ask for a logger. */
+    private final Memory logInterface = new Memory(Native.POINTER_SIZE);
 
     private final FrameBuffer frames;
     private final JoypadState joypad;
@@ -46,7 +50,8 @@ final class CoreCallbacks {
     private int pixelFormat = PIXEL_FORMAT_0RGB1555;
     /** Display shape the core asks for (Genesis 4:3 although its pixels are 320x224); 0 means square pixels. */
     private volatile float aspectRatio;
-    private int polledButtons;
+    private final JoypadState.Snapshot input = new JoypadState.Snapshot();
+    private int loggedLines;
     /** Keep 1 of every N audio frames while fast-forwarding, so sound plays sped up instead of piling up. */
     private int audioDecimation = 1;
     private int decimationPhase;
@@ -61,14 +66,24 @@ final class CoreCallbacks {
         this.options = options;
         this.systemDir = nativeString(systemDir.toAbsolutePath().toString());
         this.saveDir = nativeString(saveDir.toAbsolutePath().toString());
+        logInterface.setPointer(0, CallbackReference.getFunctionPointer(log));
     }
 
     private byte environment(int cmd, Pointer data) {
         try {
+            if (cmd == ENVIRONMENT_GET_INPUT_BITMASKS) {
+                // Asked with no data: input_state answers DEVICE_ID_JOYPAD_MASK.
+                return TRUE;
+            }
             if (data == null) {
                 return FALSE;
             }
             switch (cmd) {
+                case ENVIRONMENT_GET_LOG_INTERFACE -> {
+                    // Some cores call their logger without checking they got one.
+                    data.setPointer(0, logInterface.getPointer(0));
+                    return TRUE;
+                }
                 case ENVIRONMENT_SET_PIXEL_FORMAT -> {
                     int format = data.getInt(0);
                     // The core chooses the format; we accept every format we can convert.
@@ -242,19 +257,48 @@ final class CoreCallbacks {
         audio.write(audioPair, 2);
     }
 
-    // One snapshot per frame, so every input_state call within retro_run sees the same buttons.
+    // One snapshot per frame, so every input_state call within retro_run sees the same input.
     private void inputPoll() {
-        polledButtons = joypad.snapshot();
+        joypad.snapshot(input);
     }
 
     private short inputState(int port, int device, int index, int id) {
-        if (port != 0 || device != DEVICE_JOYPAD || index != 0) {
+        if (port != 0) {
             return 0;
         }
-        if (id == DEVICE_ID_JOYPAD_MASK) {
-            return (short) polledButtons;
+        // The low byte is the device type; cores ask with subclasses such as PCSX ReARMed's DualShock.
+        return switch (device & 0xFF) {
+            case DEVICE_JOYPAD -> {
+                if (index != 0) {
+                    yield 0;
+                }
+                if (id == DEVICE_ID_JOYPAD_MASK) {
+                    yield (short) input.buttons;
+                }
+                yield (short) (id >= 0 && id < 16 ? input.buttons >> id & 1 : 0);
+            }
+            case DEVICE_ANALOG -> (index == DEVICE_INDEX_ANALOG_LEFT || index == DEVICE_INDEX_ANALOG_RIGHT)
+                    && (id == DEVICE_ID_ANALOG_X || id == DEVICE_ID_ANALOG_Y) ? input.axes[2 * index + id] : 0;
+            case DEVICE_POINTER -> index != 0 ? 0 : switch (id) {
+                case DEVICE_ID_POINTER_X -> input.pointerX;
+                case DEVICE_ID_POINTER_Y -> input.pointerY;
+                case DEVICE_ID_POINTER_PRESSED -> (short) (input.pointerPressed ? 1 : 0);
+                default -> 0;
+            };
+            default -> 0;
+        };
+    }
+
+    /** {@code retro_log_printf_t}. Warnings and errors only, unformatted, and only the first few. May run on any thread. */
+    private void log(int level, Pointer format) {
+        try {
+            if (level >= 2 && format != null && loggedLines < 50) {
+                loggedLines++;
+                RetroHandhelds.LOGGER.warn("Retro Handhelds: core says: {}", format.getString(0, "UTF-8").strip());
+            }
+        } catch (Throwable t) {
+            // Never unwind into native code.
         }
-        return (short) (id >= 0 && id < 16 ? polledButtons >> id & 1 : 0);
     }
 
     static int xrgb8888ToAbgr(int p) {

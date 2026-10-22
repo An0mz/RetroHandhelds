@@ -13,7 +13,6 @@ import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.GamepadInput;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
-import dev.anomz.retrohandhelds.client.input.JoypadButton;
 import dev.anomz.retrohandhelds.client.render.ConsoleRenderer;
 import dev.anomz.retrohandhelds.client.render.HandheldArmPose;
 import dev.anomz.retrohandhelds.client.render.HandheldInHandRenderer;
@@ -69,7 +68,6 @@ public final class RetroHandheldsClient {
         container.registerConfig(ModConfig.Type.CLIENT, RetroClientConfig.SPEC);
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modEventBus.addListener(RetroHandheldsClient::onClientSetup);
-        modEventBus.addListener(JoypadButton::registerAll);
         modEventBus.addListener(EmulatorKeys::registerAll);
         modEventBus.addListener(RetroHandheldsClient::onRegisterRenderers);
         modEventBus.addListener(RetroHandheldsClient::onAddLayers);

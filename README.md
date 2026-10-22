@@ -1,6 +1,6 @@
 # Retro Handhelds
 
-Play your own retro games inside Minecraft: GBA, Game Boy, NES, SNES, Genesis, Master System and Game Gear. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
+Play your own retro games inside Minecraft: Game Boy, GBA, NES, SNES, N64, PlayStation, Nintendo DS, Genesis, Master System and more. Put a cartridge in a console block or a handheld, and play on a full-screen view, on the block itself, or in your hands while you walk around.
 
 Powered by [libretro](https://www.libretro.com) cores: [mGBA](https://mgba.io) and others, bundled, plus any libretro core you add yourself. **No games or BIOS files are included; you bring your own.**
 
@@ -21,7 +21,7 @@ What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 - Sound through Minecraft's audio, with its own volume and mute keys, and separate ones for other players' games.
 - Keyboard and gamepad (Xbox, PlayStation and other controllers GLFW recognises), all rebindable keys.
 - Fast-forward (2x to 4x), optional GBA color correction and LCD ghosting.
-- Runs GBA, Game Boy, Game Boy Color, NES, SNES, Genesis / Mega Drive, Master System and Game Gear games.
+- Runs Game Boy, Game Boy Color, GBA, NES, SNES, N64, PlayStation, Nintendo DS, Genesis / Mega Drive, 32X, Master System, Game Gear, SG-1000, PC Engine, Neo Geo Pocket, WonderSwan, Atari Lynx, Atari 2600 / 7800 and Pokemon Mini games.
 - Add your own [libretro](https://www.libretro.com) cores (Genesis Plus GX, Snes9x, ...) to use them instead of the bundled ones.
 - Multiplayer: players near a console see and hear the game being played on it, on its TVs too.
 - Server-friendly: all emulation runs on each player's own computer; the server only forwards compressed pictures, within limits the owner sets.
@@ -75,21 +75,33 @@ Each player who wants to *play* a cartridge needs that ROM in their own `roms` f
 
 ## Controls
 
-All keys are under **Retro Handhelds** in *Options → Controls → Key Binds*. A hint with your current keys shows for a few seconds when a game opens.
+Every console has its own keys, set up for that console's controller and named the way it names its buttons (the N64's A, B, Z and C-buttons; the PlayStation's Cross, Circle, Square, Triangle). Click **Controls** at the top of the game screen to see and change them: click a control, then press a key or mouse button (Esc unbinds). A key shown in red does something else too. Your changes are kept in `retro_handhelds/controls.json`; **Reset to preset** puts a console back to its defaults. A hint with the current keys shows for a few seconds when a game opens.
 
-| Action | Keyboard | Gamepad |
-|---|---|---|
-| D-pad | Arrow keys | D-pad or left stick |
-| A / B | X / Z | A / B (or Nintendo positions, see config) |
-| X / Y (SNES, Genesis) | D / C | X / Y (or Nintendo positions) |
-| L / R | A / S | Bumpers or triggers |
-| Start / Select | Enter / Backspace | Start / Back (Options / Share) |
-| Fast-forward (hold) | Tab | |
-| Full screen / in-world view | V | |
-| Save / load state | F5 / F9 | |
-| Mute, volume down/up (your game) | M, -, = (also in the world) | |
-| Mute, volume down/up (other players' games) | N, [, ] (also in the world) | Never touches your own game |
-| Back to Minecraft | Esc | |
+Some of the presets:
+
+| Console | Keys |
+|---|---|
+| GBA, Game Boy | D-pad arrows, A / B = X / Z, L / R = A / S, Start / Select = Enter / Backspace |
+| SNES, DS | D-pad arrows, A / B / X / Y = X / Z / S / A, L / R = Q / W |
+| Genesis | D-pad arrows, A / B / C = Z / X / C, X / Y / Z = A / S / D |
+| N64 | Stick = W A S D, A = Space, B = E, Z = Left Shift, L / R = Q / R, C-buttons = mouse and arrow keys, D-pad = I J K L |
+| PlayStation | D-pad arrows, Cross / Circle / Square / Triangle = Z / X / A / S, L1 / R1 = Q / W, L2 / R2 = 1 / 3, left stick = I J K L, right stick = mouse and T F G H |
+
+**Mouse look:** on the PlayStation the mouse moves the right stick like an analog stick, with the cursor hidden. On the N64 the right stick is the C-buttons, which games press like buttons (Super Mario 64 turns its camera one step per press, and C-Up is first-person view), so the arrow keys press them and mouse look is off. Turn it on in Controls if you like: a flick of the mouse then taps C-Left or C-Right once, and **Mouse up/down** adds C-Up and C-Down. Left Alt frees the cursor to click the screen's buttons and back. Mouse look and its sensitivity can be changed per console in Controls. On the DS the mouse is the touchscreen instead: hold the left button on the picture in the full-screen view.
+
+**Gamepads** (Xbox, PlayStation and other controllers GLFW recognises) follow each console's layout through the standard libretro pad: face buttons, bumpers, triggers (L2 / R2 on the N64 and PlayStation, otherwise L / R too), sticks (analog on the N64 and PlayStation, otherwise the left stick also works as the D-pad) and stick clicks.
+
+These keys work on every console, under **Retro Handhelds** in *Options → Controls → Key Binds*:
+
+| Action | Key |
+|---|---|
+| Fast-forward (hold) | Tab |
+| Full screen / in-world view | V |
+| Save / load state | F5 / F9 |
+| Free the cursor (mouse look) | Left Alt |
+| Mute, volume down/up (your game) | M, -, = (also in the world) |
+| Mute, volume down/up (other players' games) | N, [, ] (also in the world); never touches your own game |
+| Back to Minecraft | Esc |
 
 The game pauses when Minecraft pauses (singleplayer). On servers and LAN worlds Minecraft keeps running, and so does the game.
 
@@ -116,9 +128,22 @@ The system is picked from the ROM's file extension:
 | NES | `.nes` | FCEUmm | `nestopia`, `fceumm`, `mesen` |
 | SNES | `.sfc` `.smc` | Mesen-S | `snes9x`, `mesen-s` |
 | Genesis / Mega Drive | `.md` `.gen` `.smd` | BlastEm | `genesis_plus_gx`, `picodrive`, `blastem` |
-| Master System, Game Gear | `.sms` `.gg` | Gearsystem | `genesis_plus_gx`, `picodrive`, `gearsystem` |
+| 32X | `.32x` | BlastEm | `picodrive`, `blastem` |
+| Master System, Game Gear, SG-1000 | `.sms` `.gg` `.sg` | Gearsystem | `genesis_plus_gx`, `picodrive`, `gearsystem` |
+| Nintendo 64 | `.n64` `.v64` `.z64` | ParaLLEl-N64 (software renderer) | `parallel_n64` |
+| PlayStation | `.cue` `.chd` `.m3u` `.pbp` | PCSX ReARMed | `pcsx_rearmed`, `mednafen_psx` |
+| Nintendo DS | `.nds` | DeSmuME | `desmume` |
+| PC Engine / TurboGrafx-16 | `.pce` | Beetle PCE Fast | `mednafen_pce`, `mednafen_pce_fast` |
+| Neo Geo Pocket / Color | `.ngp` `.ngc` | Beetle NeoPop | `mednafen_ngp` |
+| WonderSwan / Color | `.ws` `.wsc` | Beetle WonderSwan | `mednafen_wswan` |
+| Atari Lynx | `.lnx` | Handy | `handy` |
+| Atari 2600 | `.a26` | Stella 2014 | `stella`, `stella2014` |
+| Atari 7800 | `.a78` | ProSystem | `prosystem` |
+| Pokemon Mini | `.min` | PokeMini | `pokemini` |
 
-To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. Cores built on libco, like bsnes and its forks, don't work in the mod. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
+To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. Cores built on libco (bsnes and its forks, Mupen64Plus-Next, melonDS) and cores that need OpenGL or Vulkan (Flycast, PPSSPP) don't work in the mod. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
+
+A PlayStation game is a `.cue` (with its `.bin` tracks next to it), a `.chd`, an `.m3u` playlist for multi-disc games, or a `.pbp`. No BIOS is needed: PCSX ReARMed has a built-in one, though a real `scph5501.bin` in `system/` is more compatible. The N64 draws in software, which is heavy: it needs a fast CPU to reach full speed while Minecraft runs.
 
 Other players see a shared game at up to 240x160, scaled down from larger systems.
 

@@ -1,23 +1,32 @@
 package dev.anomz.retrohandhelds.client.screen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.glfw.GLFW;
 
+import dev.anomz.retrohandhelds.RetroSystem;
 import dev.anomz.retrohandhelds.RomNames;
 import dev.anomz.retrohandhelds.client.RetroClientConfig;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.FrameBuffer;
+import dev.anomz.retrohandhelds.client.emu.JoypadState;
 import dev.anomz.retrohandhelds.client.emu.StateResult;
+import dev.anomz.retrohandhelds.client.controls.Binding;
+import dev.anomz.retrohandhelds.client.controls.ControlAction;
+import dev.anomz.retrohandhelds.client.controls.ControlPreset;
+import dev.anomz.retrohandhelds.client.controls.ControlProfile;
+import dev.anomz.retrohandhelds.client.controls.ControlProfiles;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
 import dev.anomz.retrohandhelds.client.input.GamepadInput;
-import dev.anomz.retrohandhelds.client.input.JoypadButton;
+import dev.anomz.retrohandhelds.client.input.MouseLook;
 import dev.anomz.retrohandhelds.client.session.ConsoleSessions;
 import dev.anomz.retrohandhelds.client.session.SessionDisplay;
 import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -31,10 +40,31 @@ public final class EmulatorScreen extends Screen {
     private static final long HINT_VISIBLE_MS = 5000;
     private static final long HINT_FADE_MS = 1000;
     private static final long STATUS_VISIBLE_MS = 2000;
+    private static final int HINT_CONTROLS_PER_LINE = 6;
 
     private final ConsoleSessions.Active active;
     private final EmulatorSession session;
     private final boolean stopOnClose;
+    private final RetroSystem.Controls controls;
+    private final ControlProfile profile;
+    private final MouseLook mouseLook = new MouseLook();
+    /** The player freed the cursor with the free-mouse key (mouse look off until pressed again). */
+    private boolean cursorFree;
+    /** Whether this screen has hidden the cursor for mouse look. */
+    private boolean captured;
+    private final double[] cursorX = new double[1];
+    private final double[] cursorY = new double[1];
+    private double lastCursorX;
+    private double lastCursorY;
+    private long lastLookNanos;
+    /** Where the picture is drawn in the full-screen view, for touch input; zero size when not drawn. */
+    private int pictureX;
+    private int pictureY;
+    private int pictureWidth;
+    private int pictureHeight;
+    private boolean touching;
+    /** A screen of ours is open on top (Controls, restart confirmation): this one comes back, so the game keeps running. */
+    private boolean childOpen;
     /** Whether there is a console or handheld in the world to watch instead of the full-screen picture. */
     private final boolean hasWorldView;
     private boolean inWorldView;
@@ -48,47 +78,69 @@ public final class EmulatorScreen extends Screen {
         this.active = active;
         this.session = active.session();
         this.stopOnClose = stopOnClose;
+        RetroSystem system = RetroSystem.forFileName(active.romFile()).orElse(RetroSystem.GAME_BOY_ADVANCE);
+        this.controls = system.controls();
+        this.profile = ControlProfiles.get(system);
         this.hasWorldView = active.pos() != null || active.handheld();
         this.inWorldView = hasWorldView && RetroClientConfig.inWorldView();
     }
 
     @Override
     protected void init() {
+        childOpen = false;
         addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.power_off"), b -> powerOff())
                 .bounds(width - 74, 4, 70, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.restart"), b -> confirmRestart())
+                .bounds(width - 148, 4, 70, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.controls"), b -> openControls())
+                .bounds(width - 222, 4, 70, 20).build());
         String pad = GamepadInput.connectedName();
         if (pad != null && status == null) {
             showStatus(Component.translatable("screen.retrohandhelds.gamepad", pad));
         }
-        // Built here, not per frame; bindings cannot change while this screen is open.
-        hintLines = List.of(
-                hint(JoypadButton.UP, JoypadButton.DOWN, JoypadButton.LEFT, JoypadButton.RIGHT),
-                hint(JoypadButton.A, JoypadButton.B, JoypadButton.X, JoypadButton.Y, JoypadButton.L, JoypadButton.R),
-                hint(JoypadButton.START, JoypadButton.SELECT).copy().append("   Close: Esc"),
-                Component.empty()
-                        .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
-                        .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()),
-                Component.empty()
-                        .append("Mute: ").append(EmulatorKeys.MUTE.getTranslatedKeyMessage())
-                        .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
-                        .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage())
-                        .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)")
-                        .append("   View: ").append(EmulatorKeys.TOGGLE_VIEW.getTranslatedKeyMessage()),
-                Component.empty()
-                        .append("Other players: mute ").append(EmulatorKeys.MUTE_OTHERS.getTranslatedKeyMessage())
-                        .append("   volume ").append(EmulatorKeys.OTHERS_VOLUME_DOWN.getTranslatedKeyMessage())
-                        .append(" / ").append(EmulatorKeys.OTHERS_VOLUME_UP.getTranslatedKeyMessage()));
+        // Built here, not per frame: bindings only change in the Controls screen, which runs init() again.
+        hintLines = buildHints();
     }
 
-    private static Component hint(JoypadButton... buttons) {
+    /** The console's controls with their keys, then touch or mouse look, then the emulator keys. */
+    private List<Component> buildHints() {
+        List<Component> lines = new ArrayList<>();
         var line = Component.empty();
-        for (int i = 0; i < buttons.length; i++) {
-            if (i > 0) {
+        int onLine = 0;
+        for (ControlPreset.Entry entry : profile.preset().entries()) {
+            if (onLine == HINT_CONTROLS_PER_LINE) {
+                lines.add(line);
+                line = Component.empty();
+                onLine = 0;
+            }
+            if (onLine > 0) {
                 line.append("   ");
             }
-            line.append(buttons[i].label() + ": ").append(buttons[i].mapping().getTranslatedKeyMessage());
+            line.append(entry.label() + ": ").append(ControlsScreen.keyName(profile.binding(entry.action())));
+            onLine++;
         }
-        return line;
+        lines.add(line.append("   Close: Esc"));
+        if (controls.touch()) {
+            lines.add(Component.literal("Touchscreen: left mouse button on the picture (full-screen view)"));
+        } else if (profile.mouseLook()) {
+            lines.add(Component.literal(controls == RetroSystem.Controls.N64
+                            ? "Mouse: flick to tap the C-buttons (camera)" : "Mouse: right stick")
+                    .append("   Free the cursor: ").append(EmulatorKeys.FREE_MOUSE.getTranslatedKeyMessage()));
+        }
+        lines.add(Component.empty()
+                .append("Save state: ").append(EmulatorKeys.SAVE_STATE.getTranslatedKeyMessage())
+                .append("   Load state: ").append(EmulatorKeys.LOAD_STATE.getTranslatedKeyMessage()));
+        lines.add(Component.empty()
+                .append("Mute: ").append(EmulatorKeys.MUTE.getTranslatedKeyMessage())
+                .append("   Volume: ").append(EmulatorKeys.VOLUME_DOWN.getTranslatedKeyMessage())
+                .append(" / ").append(EmulatorKeys.VOLUME_UP.getTranslatedKeyMessage())
+                .append("   Fast-forward: ").append(EmulatorKeys.FAST_FORWARD.getTranslatedKeyMessage()).append(" (hold)")
+                .append("   View: ").append(EmulatorKeys.TOGGLE_VIEW.getTranslatedKeyMessage()));
+        lines.add(Component.empty()
+                .append("Other players: mute ").append(EmulatorKeys.MUTE_OTHERS.getTranslatedKeyMessage())
+                .append("   volume ").append(EmulatorKeys.OTHERS_VOLUME_DOWN.getTranslatedKeyMessage())
+                .append(" / ").append(EmulatorKeys.OTHERS_VOLUME_UP.getTranslatedKeyMessage()));
+        return lines;
     }
 
     @Override
@@ -106,7 +158,12 @@ public final class EmulatorScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // Polled every frame here: GLFW needs the main thread, and a 20 Hz tick would add input lag.
-        session.joypad().setPad(minecraft.isWindowActive() ? GamepadInput.poll() : 0);
+        if (minecraft.isWindowActive()) {
+            GamepadInput.poll(session.joypad(), controls);
+        } else {
+            session.joypad().setPad(0);
+            session.joypad().setPadAxes(0, 0, 0, 0);
+        }
         SessionDisplay display = active.display();
         display.update();
         // In-world view draws nothing here: the world renders behind this screen, showing the game on
@@ -118,8 +175,19 @@ public final class EmulatorScreen extends Screen {
             float aspect = display.aspectRatio();
             int w = (int) Math.min(width, height * aspect);
             int h = (int) (w / aspect);
-            graphics.blit(display.textureId(), (width - w) / 2, (height - h) / 2, w, h, 0, 0, frameWidth, frameHeight, W, H);
+            pictureX = (width - w) / 2;
+            pictureY = (height - h) / 2;
+            pictureWidth = w;
+            pictureHeight = h;
+            graphics.blit(display.textureId(), pictureX, pictureY, w, h, 0, 0, frameWidth, frameHeight, W, H);
+        } else {
+            pictureWidth = 0;
+            pictureHeight = 0;
         }
+        if (controls.touch()) {
+            updatePointer(mouseX, mouseY);
+        }
+        updateMouseLook();
 
         renderHint(graphics);
         if (session.speed() > 1) {
@@ -153,6 +221,25 @@ public final class EmulatorScreen extends Screen {
         showStatus(Component.translatable(inWorldView ? "screen.retrohandhelds.view.world" : "screen.retrohandhelds.view.fullscreen"));
     }
 
+    /** Asks first: restarting loses everything since the game's last own save. */
+    private void confirmRestart() {
+        childOpen = true;
+        minecraft.setScreen(new ConfirmScreen(restart -> {
+            if (restart) {
+                session.reset();
+                showStatus(Component.translatable("screen.retrohandhelds.restarted"));
+            }
+            minecraft.setScreen(this);
+        }, Component.translatable("screen.retrohandhelds.restart.title"),
+                Component.translatable("screen.retrohandhelds.restart.message")));
+    }
+
+    /** This console's keys and mouse look; the game keeps running behind. */
+    private void openControls() {
+        childOpen = true;
+        minecraft.setScreen(new ControlsScreen(this, profile));
+    }
+
     /** Shuts the console down (the cartridge stays in) and goes back to the world. */
     private void powerOff() {
         ConsoleSessions.stop(active);
@@ -180,6 +267,11 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (matches(EmulatorKeys.FREE_MOUSE, keyCode, scanCode) && profile.mouseLook()) {
+            cursorFree = !cursorFree;
+            showStatus(Component.translatable(cursorFree ? "screen.retrohandhelds.mouse.freed" : "screen.retrohandhelds.mouse.captured"));
+            return true;
+        }
         if (matches(EmulatorKeys.SAVE_STATE, keyCode, scanCode)) {
             session.saveState().thenAccept(this::showStateResult);
             return true;
@@ -220,7 +312,7 @@ public final class EmulatorScreen extends Screen {
             showStatus(ConsoleSessions.changeOtherPlayersVolume(1));
             return true;
         }
-        if (keyCode != GLFW.GLFW_KEY_ESCAPE && setButtons(keyCode, scanCode, true)) {
+        if (keyCode != GLFW.GLFW_KEY_ESCAPE && setControls(Binding.key(keyCode), true)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -232,17 +324,35 @@ public final class EmulatorScreen extends Screen {
             session.setSpeed(1);
             return true;
         }
-        return setButtons(keyCode, scanCode, false) || super.keyReleased(keyCode, scanCode, modifiers);
+        return setControls(Binding.key(keyCode), false) || super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return setMouseButtons(button, true) || super.mouseClicked(mouseX, mouseY, button);
+        // While the mouse looks around the cursor is hidden: clicks only press bound controls, never
+        // a button the hidden cursor happens to be over. Otherwise widgets (Power Off) first, then the
+        // touchscreen, then bound controls.
+        if (captured) {
+            setControls(Binding.mouseButton(button), true);
+            return true;
+        }
+        if (super.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        if (controls.touch() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && overPicture(mouseX, mouseY)) {
+            touching = true;
+            return true;
+        }
+        return setControls(Binding.mouseButton(button), true);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return setMouseButtons(button, false) || super.mouseReleased(mouseX, mouseY, button);
+        if (controls.touch() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && touching) {
+            touching = false;
+            return true;
+        }
+        return setControls(Binding.mouseButton(button), false) || super.mouseReleased(mouseX, mouseY, button);
     }
 
     private static boolean matches(KeyMapping mapping, int keyCode, int scanCode) {
@@ -265,26 +375,78 @@ public final class EmulatorScreen extends Screen {
         statusAtMs = Util.getMillis();
     }
 
-    private boolean setButtons(int keyCode, int scanCode, boolean down) {
-        boolean matched = false;
-        for (JoypadButton button : JoypadButton.ALL) {
-            if (button.mapping().matches(keyCode, scanCode)) {
-                session.joypad().set(button.retroId(), down);
-                matched = true;
-            }
+    /** The mouse over the picture as a libretro pointer; touching only while held over the picture. */
+    private void updatePointer(double mouseX, double mouseY) {
+        if (pictureWidth <= 0 || pictureHeight <= 0) {
+            session.joypad().setPointer(0, 0, false);
+            return;
         }
-        return matched;
+        double u = (mouseX - pictureX) / pictureWidth;
+        double v = (mouseY - pictureY) / pictureHeight;
+        boolean inside = u >= 0 && u < 1 && v >= 0 && v < 1;
+        session.joypad().setPointer(JoypadState.toPointer(u), JoypadState.toPointer(v), touching && inside);
     }
 
-    private boolean setMouseButtons(int mouseButton, boolean down) {
-        boolean matched = false;
-        for (JoypadButton button : JoypadButton.ALL) {
-            if (button.mapping().matchesMouse(mouseButton)) {
-                session.joypad().set(button.retroId(), down);
-                matched = true;
-            }
+    private boolean overPicture(double mouseX, double mouseY) {
+        return mouseX >= pictureX && mouseX < pictureX + pictureWidth && mouseY >= pictureY && mouseY < pictureY + pictureHeight;
+    }
+
+    /** Presses or releases every control of this console bound to {@code binding}. */
+    private boolean setControls(Binding binding, boolean down) {
+        List<ControlAction> actions = profile.actionsFor(binding);
+        for (ControlAction action : actions) {
+            action.apply(session.joypad(), down);
         }
-        return matched;
+        return !actions.isEmpty();
+    }
+
+    /**
+     * Mouse look: while on, the cursor is hidden and its movement tilts the right stick. Off while
+     * the player freed the cursor, a screen of ours is on top or the window is in the background.
+     */
+    private void updateMouseLook() {
+        boolean wanted = profile.mouseLook() && !cursorFree && !childOpen && minecraft.isWindowActive();
+        if (wanted != captured) {
+            setCaptured(wanted);
+        }
+        if (!captured) {
+            session.joypad().setMouseStick(0, 0);
+            return;
+        }
+        GLFW.glfwGetCursorPos(minecraft.getWindow().getWindow(), cursorX, cursorY);
+        long now = System.nanoTime();
+        double dx = cursorX[0] - lastCursorX;
+        double dy = profile.mouseVertical() ? cursorY[0] - lastCursorY : 0;
+        float sensitivity = profile.sensitivity();
+        MouseLook.Mode mode = profile.preset().mouseMode();
+        if (mode == MouseLook.Mode.TAPS) {
+            mouseLook.updateTaps(dx, dy, now, sensitivity);
+        } else {
+            mouseLook.update(dx, dy, (now - lastLookNanos) / 1e9);
+        }
+        lastCursorX = cursorX[0];
+        lastCursorY = cursorY[0];
+        lastLookNanos = now;
+        session.joypad().setMouseStick(mouseLook.stickX(mode, sensitivity), mouseLook.stickY(mode, sensitivity));
+    }
+
+    /**
+     * Hides or shows the cursor through GLFW directly: Minecraft's own mouse grab would also turn the
+     * player behind this screen.
+     */
+    private void setCaptured(boolean capture) {
+        long window = minecraft.getWindow().getWindow();
+        captured = capture;
+        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, capture ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
+        if (!capture) {
+            // Back in the middle, as Minecraft does when it lets go of the mouse.
+            GLFW.glfwSetCursorPos(window, minecraft.getWindow().getScreenWidth() / 2.0, minecraft.getWindow().getScreenHeight() / 2.0);
+        }
+        GLFW.glfwGetCursorPos(window, cursorX, cursorY);
+        lastCursorX = cursorX[0];
+        lastCursorY = cursorY[0];
+        lastLookNanos = System.nanoTime();
+        mouseLook.reset();
     }
 
     /** Whether this screen shows {@code session}. */
@@ -309,9 +471,12 @@ public final class EmulatorScreen extends Screen {
 
     @Override
     public void removed() {
+        if (captured) {
+            setCaptured(false);
+        }
         session.joypad().clear();
         session.setSpeed(1);
-        if (stopOnClose) {
+        if (stopOnClose && !childOpen) {
             ConsoleSessions.stop(active);
         }
     }
