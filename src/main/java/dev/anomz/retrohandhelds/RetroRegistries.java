@@ -11,8 +11,12 @@ import dev.anomz.retrohandhelds.item.RemoteItem;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -30,6 +34,8 @@ public final class RetroRegistries {
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, RetroHandhelds.MODID);
     private static final DeferredRegister.DataComponents DATA_COMPONENTS =
             DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, RetroHandhelds.MODID);
+    private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
+            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, RetroHandhelds.MODID);
 
     public static final DeferredBlock<ConsoleBlock> CONSOLE = BLOCKS.register("console", () -> new ConsoleBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(1.5f).sound(SoundType.METAL)));
@@ -62,10 +68,26 @@ public final class RetroRegistries {
     private RetroRegistries() {
     }
 
+    /** Everything the mod adds, in its own tab after the vanilla ones. */
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = CREATIVE_TABS.register(RetroHandhelds.MODID,
+            () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup." + RetroHandhelds.MODID))
+                    .icon(() -> new ItemStack(HANDHELD.get()))
+                    .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
+                    .displayItems((parameters, output) -> {
+                        output.accept(CONSOLE_ITEM.get());
+                        output.accept(TV_ITEM.get());
+                        output.accept(HANDHELD.get());
+                        output.accept(CARTRIDGE.get());
+                        output.accept(REMOTE.get());
+                    })
+                    .build());
+
     static void register(IEventBus modEventBus) {
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
         BLOCK_ENTITY_TYPES.register(modEventBus);
         DATA_COMPONENTS.register(modEventBus);
+        CREATIVE_TABS.register(modEventBus);
     }
 }

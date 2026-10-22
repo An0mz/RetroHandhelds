@@ -17,6 +17,10 @@ new features raise the middle number, fixes alone the last one.
 - **Analog sticks:** gamepad sticks reach the game as analog sticks on the N64 and PlayStation, and the
   triggers are L2/R2 there.
 - **Restart button** next to Power Off, with a confirmation.
+- **New look:** dark screens with a red accent. The game picker has search, system tags and an
+  "Open folder" button; the game screen has an icon bar that hides when the mouse rests and a card
+  showing the keys.
+- **Own creative tab** with everything the mod adds.
 - **Your own cores:** put any libretro core in `retro_handhelds/cores/` (e.g. Genesis Plus GX or
   Snes9x) to use it instead of the bundled one.
 

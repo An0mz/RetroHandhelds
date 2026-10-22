@@ -3,6 +3,7 @@ package dev.anomz.retrohandhelds.client.screen;
 import java.util.List;
 import java.util.Locale;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import com.mojang.blaze3d.platform.InputConstants;
@@ -13,43 +14,40 @@ import dev.anomz.retrohandhelds.client.controls.ControlPreset;
 import dev.anomz.retrohandhelds.client.controls.ControlProfile;
 import dev.anomz.retrohandhelds.client.controls.ControlProfiles;
 import dev.anomz.retrohandhelds.client.input.EmulatorKeys;
-import net.minecraft.ChatFormatting;
+import dev.anomz.retrohandhelds.client.screen.ui.PanelScreen;
+import dev.anomz.retrohandhelds.client.screen.ui.ScrollList;
+import dev.anomz.retrohandhelds.client.screen.ui.TextButton;
+import dev.anomz.retrohandhelds.client.screen.ui.Toggle;
+import dev.anomz.retrohandhelds.client.screen.ui.Ui;
+import dev.anomz.retrohandhelds.client.screen.ui.UiSlider;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractSliderButton;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.ContainerObjectSelectionList;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 
 /**
- * One console's keys: click a control, then press a key or mouse button (Esc unbinds). A key shown
- * in red does something else too: another control of this console, or an emulator key such as save
- * state, which wins. Saved to {@code controls.json} when the screen closes.
+ * One console's keys: click a control, then press a key or mouse button; Esc or a right click
+ * unbinds. A key shown in red does something else too, and the line under the list says what.
+ * Saved to {@code controls.json} when the screen closes.
  */
-public final class ControlsScreen extends Screen {
-    private static final int ROW_HEIGHT = 22;
-    private static final int KEY_BUTTON_WIDTH = 110;
+public final class ControlsScreen extends PanelScreen {
+    private static final int ROW_HEIGHT = 20;
     /** Emulator keys checked before any console control in the emulator screen. */
     private static final List<KeyMapping> EMULATOR_KEYS = List.of(EmulatorKeys.SAVE_STATE, EmulatorKeys.LOAD_STATE,
             EmulatorKeys.FAST_FORWARD, EmulatorKeys.TOGGLE_VIEW, EmulatorKeys.FREE_MOUSE, EmulatorKeys.MUTE,
             EmulatorKeys.VOLUME_DOWN, EmulatorKeys.VOLUME_UP, EmulatorKeys.MUTE_OTHERS, EmulatorKeys.OTHERS_VOLUME_DOWN,
             EmulatorKeys.OTHERS_VOLUME_UP);
 
-    private final Screen parent;
     private final ControlProfile profile;
     /** The control waiting for its new key, or null. */
+    @Nullable
     private ControlAction waitingFor;
+    private int clashY;
 
     ControlsScreen(Screen parent, ControlProfile profile) {
-        super(Component.translatable("screen.retrohandhelds.controls.title", profile.system().displayName()));
-        this.parent = parent;
+        super(Component.translatable("screen.retrohandhelds.controls.title", profile.system().displayName()), parent);
         this.profile = profile;
+        subtitle = Component.translatable("screen.retrohandhelds.controls.help");
     }
 
     /** How a binding reads on screen: the key's own name, a mouse button, or "-" when unbound. */
@@ -61,47 +59,117 @@ public final class ControlsScreen extends Screen {
         return type.getOrCreate(binding.code()).getDisplayName();
     }
 
-    @Override
-    protected void init() {
-        boolean analog = profile.system().controls().analog;
-        int footerTop = height - (analog ? 78 : 30);
-        ControlList list = new ControlList(minecraft, width, footerTop - 36, 30);
-        for (ControlPreset.Entry entry : profile.preset().entries()) {
-            list.add(new Row(entry));
-        }
-        addRenderableWidget(list);
-
-        int left = width / 2 - 155;
-        int right = width / 2 + 5;
-        if (analog) {
-            addRenderableWidget(CycleButton.onOffBuilder(profile.mouseLook())
-                    .create(left, footerTop, 150, 20, Component.translatable("screen.retrohandhelds.controls.mouse_look"),
-                            (button, on) -> profile.setMouseLook(on)));
-            addRenderableWidget(CycleButton.onOffBuilder(profile.mouseVertical())
-                    .create(right, footerTop, 150, 20, Component.translatable("screen.retrohandhelds.controls.mouse_vertical"),
-                            (button, on) -> profile.setMouseVertical(on)));
-            addRenderableWidget(new SensitivitySlider(left, footerTop + 24));
-        }
-        addRenderableWidget(Button.builder(Component.translatable("screen.retrohandhelds.controls.reset"), b -> {
-            profile.reset();
-            waitingFor = null;
-            rebuildWidgets();
-        }).bounds(left, height - 26, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose())
-                .bounds(right, height - 26, 150, 20).build());
+    private boolean analog() {
+        return profile.system().controls().analog;
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFFFF);
-        graphics.drawCenteredString(font, Component.translatable("screen.retrohandhelds.controls.help"), width / 2, 18, 0xFFA0A0A0);
+    protected int panelWidth() {
+        return 360;
+    }
+
+    @Override
+    protected int panelHeight() {
+        return 340;
+    }
+
+    @Override
+    protected void initContent() {
+        int x = contentLeft();
+        int w = contentWidth();
+        int bottom = contentBottom();
+        int buttonsY = bottom - 20;
+        clashY = buttonsY - 14;
+        int footerTop = clashY;
+        if (analog()) {
+            footerTop -= 48;
+            int half = (w - 6) / 2;
+            addRenderableWidget(new Toggle(x, footerTop, half, 20, Component.translatable("screen.retrohandhelds.controls.mouse_look"),
+                    profile.mouseLook(), profile::setMouseLook));
+            addRenderableWidget(new Toggle(x + half + 6, footerTop, half, 20, Component.translatable("screen.retrohandhelds.controls.mouse_vertical"),
+                    profile.mouseVertical(), profile::setMouseVertical));
+            addRenderableWidget(new SensitivitySlider(x + 110, footerTop + 24, w - 110 - 36));
+        }
+        ScrollList<ControlPreset.Entry> list = addRenderableWidget(new ScrollList<>(x, contentTop(), w,
+                footerTop - 6 - contentTop(), ROW_HEIGHT, title, this::renderRow, this::clickRow));
+        list.setItems(profile.preset().entries());
+
+        addRenderableWidget(new TextButton(x, buttonsY, 110, 20, Component.translatable("screen.retrohandhelds.controls.reset"),
+                TextButton.Style.QUIET, () -> {
+                    profile.reset();
+                    waitingFor = null;
+                    rebuildWidgets();
+                }));
+        addRenderableWidget(new TextButton(x + w - 80, buttonsY, 80, 20, Component.translatable("gui.done"),
+                TextButton.Style.PRIMARY, this::onClose));
+    }
+
+    private void renderRow(GuiGraphics g, ControlPreset.Entry entry, int x, int y, int w, int h, boolean hovered) {
+        boolean waiting = waitingFor == entry.action();
+        if (hovered || waiting) {
+            Ui.round(g, x, y + 1, w, h - 2, Ui.SURFACE);
+        }
+        g.drawString(font, entry.label(), x + 6, y + (h - font.lineHeight) / 2 + 1, Ui.TEXT, false);
+        Binding binding = profile.binding(entry.action());
+        Component key;
+        int textColor;
+        int border;
+        if (waiting) {
+            key = Component.translatable("screen.retrohandhelds.controls.press_key");
+            textColor = Ui.ACCENT_HOVER;
+            border = Ui.ACCENT;
+        } else if (clash(entry.action()) != null) {
+            key = keyName(binding);
+            textColor = Ui.DANGER;
+            border = Ui.DANGER;
+        } else {
+            key = keyName(binding);
+            textColor = binding.isBound() ? Ui.TEXT : Ui.TEXT_FAINT;
+            border = hovered ? Ui.TEXT_FAINT : Ui.PANEL_BORDER;
+        }
+        int capW = Ui.keyCapWidth(font, key);
+        Ui.keyCap(g, font, key, x + w - capW - 6, y + (h - Ui.KEY_CAP_HEIGHT) / 2, textColor, border, 1);
+    }
+
+    private void clickRow(ControlPreset.Entry entry, int button) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            profile.set(entry.action(), Binding.NONE);
+            waitingFor = null;
+        } else {
+            waitingFor = entry.action();
+        }
+    }
+
+    /**
+     * Why {@code action}'s key is shown in red: another control of this console or an emulator key
+     * (which wins) uses it too. Null when it doesn't clash.
+     */
+    @Nullable
+    private Component clash(ControlAction action) {
+        Binding binding = profile.binding(action);
+        if (!binding.isBound()) {
+            return null;
+        }
+        for (KeyMapping key : EMULATOR_KEYS) {
+            InputConstants.Type type = binding.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM;
+            if (key.getKey().getType() == type && key.getKey().getValue() == binding.code()) {
+                return Component.translatable("screen.retrohandhelds.controls.clash", keyName(binding),
+                        Component.translatable(key.getName()));
+            }
+        }
+        for (ControlPreset.Entry other : profile.preset().entries()) {
+            if (other.action() != action && profile.binding(other.action()).equals(binding)) {
+                return Component.translatable("screen.retrohandhelds.controls.clash", keyName(binding), other.label());
+            }
+        }
+        return null;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (waitingFor != null) {
-            bind(keyCode == GLFW.GLFW_KEY_ESCAPE ? Binding.NONE : Binding.key(keyCode));
+            profile.set(waitingFor, keyCode == GLFW.GLFW_KEY_ESCAPE ? Binding.NONE : Binding.key(keyCode));
+            waitingFor = null;
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -110,105 +178,46 @@ public final class ControlsScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (waitingFor != null) {
-            bind(Binding.mouseButton(button));
+            profile.set(waitingFor, Binding.mouseButton(button));
+            waitingFor = null;
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private void bind(Binding binding) {
-        profile.set(waitingFor, binding);
-        waitingFor = null;
+    @Override
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        super.render(g, mouseX, mouseY, partialTick);
+        int x = contentLeft();
+        if (analog()) {
+            int sliderY = clashY - 48 + 24;
+            g.drawString(font, Component.translatable("screen.retrohandhelds.controls.sensitivity"), x + 4, sliderY + 6, Ui.TEXT, false);
+            String value = String.format(Locale.ROOT, "%.1fx", profile.sensitivity());
+            g.drawString(font, value, x + contentWidth() - font.width(value) - 4, sliderY + 6, Ui.TEXT_DIM, false);
+        }
+        for (ControlPreset.Entry entry : profile.preset().entries()) {
+            Component reason = clash(entry.action());
+            if (reason != null) {
+                g.drawString(font, font.plainSubstrByWidth(reason.getString(), contentWidth()), x, clashY + 1, Ui.DANGER, false);
+                break;
+            }
+        }
     }
 
     @Override
     public void onClose() {
         ControlProfiles.save();
-        minecraft.setScreen(parent);
+        super.onClose();
     }
 
-    /** Whether an emulator key (checked first) uses the same key, so this control would never get it. */
-    private static boolean takenByEmulatorKey(Binding binding) {
-        if (!binding.isBound()) {
-            return false;
-        }
-        InputConstants.Type type = binding.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM;
-        for (KeyMapping key : EMULATOR_KEYS) {
-            if (key.getKey().getType() == type && key.getKey().getValue() == binding.code()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private final class ControlList extends ContainerObjectSelectionList<Row> {
-        ControlList(Minecraft minecraft, int width, int height, int y) {
-            super(minecraft, width, height, y, ROW_HEIGHT);
-        }
-
-        void add(Row row) {
-            addEntry(row);
-        }
-
-        @Override
-        public int getRowWidth() {
-            return 300;
-        }
-    }
-
-    private final class Row extends ContainerObjectSelectionList.Entry<Row> {
-        private final ControlPreset.Entry entry;
-        private final Button keyButton;
-
-        Row(ControlPreset.Entry entry) {
-            this.entry = entry;
-            this.keyButton = Button.builder(Component.empty(), b -> waitingFor = entry.action())
-                    .size(KEY_BUTTON_WIDTH, 20).build();
-        }
-
-        @Override
-        public void render(GuiGraphics graphics, int index, int top, int left, int width, int height,
-                int mouseX, int mouseY, boolean hovering, float partialTick) {
-            graphics.drawString(font, entry.label(), left + 4, top + 6, 0xFFFFFFFF);
-            keyButton.setPosition(left + width - KEY_BUTTON_WIDTH - 4, top);
-            keyButton.setMessage(message());
-            keyButton.render(graphics, mouseX, mouseY, partialTick);
-        }
-
-        private Component message() {
-            Binding binding = profile.binding(entry.action());
-            MutableComponent name = keyName(binding).copy();
-            if (waitingFor == entry.action()) {
-                return Component.literal("> ").append(name.withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE))
-                        .append(" <").withStyle(ChatFormatting.YELLOW);
-            }
-            if (profile.sharesKey(entry.action()) || takenByEmulatorKey(binding)) {
-                return name.withStyle(ChatFormatting.RED);
-            }
-            return name;
-        }
-
-        @Override
-        public List<? extends GuiEventListener> children() {
-            return List.of(keyButton);
-        }
-
-        @Override
-        public List<? extends NarratableEntry> narratables() {
-            return List.of(keyButton);
-        }
-    }
-
-    private final class SensitivitySlider extends AbstractSliderButton {
-        SensitivitySlider(int x, int y) {
-            super(x, y, 150, 20, Component.empty(), toSlider(profile.sensitivity()));
-            updateMessage();
+    private final class SensitivitySlider extends UiSlider {
+        SensitivitySlider(int x, int y, int width) {
+            super(x, y, width, 20, toSlider(profile.sensitivity()));
         }
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.translatable("screen.retrohandhelds.controls.sensitivity",
-                    String.format(Locale.ROOT, "%.1f", fromSlider(value))));
+            setMessage(Component.translatable("screen.retrohandhelds.controls.sensitivity"));
         }
 
         @Override

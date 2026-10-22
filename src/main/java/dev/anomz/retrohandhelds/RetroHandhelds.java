@@ -9,14 +9,12 @@ import dev.anomz.retrohandhelds.network.AudioChunkPayload;
 import dev.anomz.retrohandhelds.network.ShareAudioPayload;
 import dev.anomz.retrohandhelds.network.ScreenStripPayload;
 import dev.anomz.retrohandhelds.network.ShareStripPayload;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 @Mod(RetroHandhelds.MODID)
@@ -29,7 +27,6 @@ public final class RetroHandhelds {
         RetroRegistries.register(modEventBus);
         NeoForge.EVENT_BUS.addListener(RetroHandhelds::onLoggedOut);
         modEventBus.addListener(RetroHandhelds::onRegisterPayloads);
-        modEventBus.addListener(RetroHandhelds::onBuildCreativeTabs);
     }
 
     private static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
@@ -44,16 +41,5 @@ public final class RetroHandhelds {
                 .playToClient(ScreenStripPayload.TYPE, ScreenStripPayload.STREAM_CODEC, ScreenStripPayload::handle)
                 .playToServer(ShareAudioPayload.TYPE, ShareAudioPayload.STREAM_CODEC, ShareAudioPayload::handle)
                 .playToClient(AudioChunkPayload.TYPE, AudioChunkPayload.STREAM_CODEC, AudioChunkPayload::handle);
-    }
-
-    private static void onBuildCreativeTabs(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            event.accept(RetroRegistries.CONSOLE_ITEM);
-            event.accept(RetroRegistries.TV_ITEM);
-        } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(RetroRegistries.CARTRIDGE);
-            event.accept(RetroRegistries.HANDHELD);
-            event.accept(RetroRegistries.REMOTE);
-        }
     }
 }
