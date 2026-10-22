@@ -209,11 +209,6 @@ public final class ConsoleSessions {
         return current != null && current.handheld() ? current : null;
     }
 
-    public static boolean activePaused() {
-        Active current = active;
-        return current != null && current.session().isPaused();
-    }
-
     /** The console block whose game is running on this client, if the running game is on a console. */
     @Nullable
     public static BlockPos activeConsolePos() {

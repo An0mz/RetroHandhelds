@@ -27,7 +27,7 @@ jobs:
           path: build/libs/*.jar
 
   native-cores:
-    # Each bundled mGBA core is only ever loaded for real on its own platform; this is that check.
+    # Each bundled core is only ever loaded for real on its own platform; this is that check.
     name: Core check (${{ matrix.platform }})
     strategy:
       fail-fast: false

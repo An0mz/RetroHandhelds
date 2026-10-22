@@ -78,11 +78,6 @@ public final class RemoteScreens {
         return new RemoteScreen(nextId++);
     }
 
-    @Nullable
-    public static ScreenImage at(BlockPos pos) {
-        return SCREENS.get(pos);
-    }
-
     /** The game shared from the handheld held by the player with entity id {@code player}. */
     @Nullable
     public static ScreenImage forPlayer(int player) {
