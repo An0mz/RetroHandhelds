@@ -3,7 +3,7 @@
 All notable changes to Retro Handhelds. Versions follow [semantic versioning](https://semver.org):
 new features raise the middle number, fixes alone the last one.
 
-## [Unreleased]
+## [1.2.0] - 2026-10-22
 
 ### Added
 - **More systems:** NES, SNES, Genesis / Mega Drive, Master System and Game Gear games, picked by
