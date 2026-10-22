@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.sun.jna.Native;
 
 import dev.anomz.retrohandhelds.RetroHandhelds;
@@ -214,6 +216,26 @@ public final class NativeLoader {
             case "aarch64", "arm64" -> "arm64";
             default -> null;
         };
+    }
+
+    /**
+     * Where the libretro buildbot has core {@code coreName} for this computer (a zip of the library),
+     * or null on a platform it has no build for.
+     */
+    @Nullable
+    public static String downloadUrl(String coreName) {
+        String os = osKey();
+        String arch = archKey();
+        if (os == null || arch == null) {
+            return null;
+        }
+        String folder = switch (os) {
+            case "windows" -> arch.equals("x64") ? "windows/x86_64" : null;
+            case "linux" -> arch.equals("x64") ? "linux/x86_64" : null;
+            default -> arch.equals("arm64") ? "apple/osx/arm64" : "apple/osx/x86_64";
+        };
+        return folder == null ? null
+                : "https://buildbot.libretro.com/nightly/" + folder + "/latest/" + libraryFileName(os, coreName) + ".zip";
     }
 
     /** The file name of core {@code coreName} on this computer, e.g. {@code parallel_n64_libretro.dll}. */

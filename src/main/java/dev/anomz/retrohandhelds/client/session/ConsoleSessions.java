@@ -19,6 +19,7 @@ import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
+import dev.anomz.retrohandhelds.client.screen.CoreMissingPanel;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
 import dev.anomz.retrohandhelds.item.CartridgeData;
 import dev.anomz.retrohandhelds.item.HandheldItem;
@@ -99,7 +100,8 @@ public final class ConsoleSessions {
         RetroSystem system = RetroSystem.forFileName(romFile).orElseThrow();
         Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
         if (core.isEmpty()) {
-            onError.accept(coreMissing(system));
+            // Too much to say in one line: which file, from where, into which folder.
+            Minecraft.getInstance().setScreen(new CoreMissingPanel(system));
             return Optional.empty();
         }
         // A cartridge saves under its own ID; the play command saves per ROM file.

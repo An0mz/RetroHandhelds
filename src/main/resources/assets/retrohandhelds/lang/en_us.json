@@ -101,5 +101,14 @@
   "screen.retrohandhelds.view.toggle": "Full screen / in-world view",
   "screen.retrohandhelds.failed": "The game stopped",
   "screen.retrohandhelds.controls.press_key": "Press a key...",
-  "screen.retrohandhelds.controls.clash": "%s is also used by %s"
+  "screen.retrohandhelds.controls.clash": "%s is also used by %s",
+  "screen.retrohandhelds.core.download.title": "%s needs a core",
+  "screen.retrohandhelds.core.download.why": "The %s emulator core can't be included in the mod, so you add it yourself, once:",
+  "screen.retrohandhelds.core.download.step1": "1. Download %s (the Download button picks the one for your computer).",
+  "screen.retrohandhelds.core.download.step2": "2. Unzip it into the cores folder.",
+  "screen.retrohandhelds.core.download.step3": "3. Play the cartridge again.",
+  "screen.retrohandhelds.core.failed.title": "The %s core didn't load",
+  "screen.retrohandhelds.core.failed.why": "The %s emulator core that comes with the mod could not be loaded on this computer; the game log says why. You can also put another libretro core for it in the cores folder.",
+  "screen.retrohandhelds.core.download": "Download",
+  "screen.retrohandhelds.core.open_folder": "Open cores folder"
 }
