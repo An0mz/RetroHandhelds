@@ -8,6 +8,7 @@
   "screen.retrohandhelds.rom_picker.empty": "No games found. Put your ROMs and disc images in:",
   "message.retrohandhelds.no_cartridge": "Insert a cartridge first",
   "message.retrohandhelds.rom_missing": "You don't have %s in your ROM folder",
+  "message.retrohandhelds.core_download": "%s games need a core you download yourself: get %s from buildbot.libretro.com/nightly and put it in %s. The mod's README explains how.",
   "message.retrohandhelds.core_missing": "No %s emulator core could be loaded. Put a libretro core in %s, or see the game log.",
   "message.retrohandhelds.tv_shape": "These TVs aren't one screen: make a filled rectangle, up to %1$sx%1$s",
   "message.retrohandhelds.no_console": "This screen isn't connected to a Retro Console",

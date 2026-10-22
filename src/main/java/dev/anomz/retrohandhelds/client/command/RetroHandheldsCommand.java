@@ -64,8 +64,7 @@ public final class RetroHandheldsCommand {
         RetroSystem system = RetroSystem.forFileName(name).orElseThrow();
         Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
         if (core.isEmpty()) {
-            source.sendFailure(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
-                    RetroPaths.cores().toString()));
+            source.sendFailure(ConsoleSessions.coreMissing(system));
             return 0;
         }
         EmulatorSession session;

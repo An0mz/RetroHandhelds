@@ -8,7 +8,8 @@ new features raise the middle number, fixes alone the last one.
 ### Added
 - **More systems:** NES, SNES, Genesis / Mega Drive, Master System and Game Gear games, picked by
   file extension (`.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.smd`, `.sms`, `.gg`).
-- **N64, PlayStation, Nintendo DS and more:** N64 (ParaLLEl-N64, software rendered), PlayStation
+- **N64, PlayStation, Nintendo DS and more:** N64 (ParaLLEl-N64, software rendered; downloaded by the
+  player into `retro_handhelds/cores/`, since its license forbids bundling it), PlayStation
   (PCSX ReARMed, no BIOS needed; `.cue`, `.chd`, `.m3u`, `.pbp`), Nintendo DS (DeSmuME, touchscreen with
   the mouse), PC Engine, Neo Geo Pocket, WonderSwan, Atari Lynx, 2600 and 7800, Pokemon Mini, 32X and
   SG-1000.

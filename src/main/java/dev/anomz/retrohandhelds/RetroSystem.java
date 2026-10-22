@@ -5,6 +5,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * The game systems the mod can run, picked by ROM file extension. Used on both sides: the server
  * only accepts cartridges for a known system, and the client picks the core from it.
@@ -13,6 +15,9 @@ import java.util.Optional;
  * back into Java from coroutine stacks the JVM does not know, which breaks its locking and stack
  * checks. Cores that need a GL or Vulkan context cannot be used either; ParaLLEl-N64 is told to use
  * its software renderer.
+ *
+ * <p>A system without a bundled core (the N64) needs a core the player downloads: ParaLLEl-N64's
+ * angrylion renderer is under the MAME license, which forbids commercial use, so it is not shipped.
  */
 public enum RetroSystem {
     GAME_BOY_ADVANCE("Game Boy Advance", List.of("gba", "gbc", "gb"), "mgba", List.of("mgba")),
@@ -22,7 +27,7 @@ public enum RetroSystem {
     SEGA_32X("32X", List.of("32x"), "blastem", List.of("picodrive", "blastem")),
     MASTER_SYSTEM("Master System / Game Gear", List.of("sms", "gg", "sg"), "gearsystem",
             List.of("genesis_plus_gx", "picodrive", "gearsystem")),
-    N64("Nintendo 64", List.of("n64", "v64", "z64"), "parallel_n64", List.of("parallel_n64"),
+    N64("Nintendo 64", List.of("n64", "v64", "z64"), null, List.of("parallel_n64"),
             Controls.N64, 0,
             // Software rendering (no GL context here) with the high-level RSP, on all cores.
             Map.of("parallel-n64-gfxplugin", "angrylion",
@@ -82,6 +87,7 @@ public enum RetroSystem {
 
     private final String displayName;
     private final List<String> extensions;
+    @Nullable
     private final String bundledCore;
     private final List<String> dropInCores;
     private final Controls controls;
@@ -89,11 +95,11 @@ public enum RetroSystem {
     private final Map<String, String> coreOptions;
     private final List<String> biosFiles;
 
-    RetroSystem(String displayName, List<String> extensions, String bundledCore, List<String> dropInCores) {
+    RetroSystem(String displayName, List<String> extensions, @Nullable String bundledCore, List<String> dropInCores) {
         this(displayName, extensions, bundledCore, dropInCores, Controls.BUTTONS, 0, Map.of(), List.of());
     }
 
-    RetroSystem(String displayName, List<String> extensions, String bundledCore, List<String> dropInCores,
+    RetroSystem(String displayName, List<String> extensions, @Nullable String bundledCore, List<String> dropInCores,
             Controls controls, int controllerDevice, Map<String, String> coreOptions, List<String> biosFiles) {
         this.displayName = displayName;
         this.extensions = extensions;
@@ -128,7 +134,8 @@ public enum RetroSystem {
         return extensions;
     }
 
-    /** Base name of the core shipped in the jar ({@code <name>_libretro.<ext>}). */
+    /** Base name of the core shipped in the jar ({@code <name>_libretro.<ext>}), or null if the player must download one. */
+    @Nullable
     public String bundledCore() {
         return bundledCore;
     }

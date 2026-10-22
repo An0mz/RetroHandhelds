@@ -32,6 +32,9 @@ class NativeCoreTest {
     @Test
     void everyBundledCoreLoadsAndInitialises() throws Exception {
         for (RetroSystem system : RetroSystem.values()) {
+            if (system.bundledCore() == null) {
+                continue;
+            }
             LibretroCore core = NativeLoader.loadInto(NATIVES_DIR, system.bundledCore());
             assertEquals(1, core.retro_api_version(), system.bundledCore());
             RetroSystemInfo info = new RetroSystemInfo();

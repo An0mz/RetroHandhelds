@@ -136,6 +136,11 @@ public final class NativeLoader {
                 RetroHandhelds.LOGGER.error("Retro Handhelds: failed to load the core {}", file, t);
             }
         }
+        if (system.bundledCore() == null) {
+            RetroHandhelds.LOGGER.warn("Retro Handhelds: no {} core in {} (none is bundled; looked for {})",
+                    system.displayName(), RetroPaths.cores(), system.dropInCores());
+            return null;
+        }
         try {
             Path nativesDir = RetroPaths.natives();
             Path file = extractBundled(nativesDir, system.bundledCore());
@@ -209,6 +214,11 @@ public final class NativeLoader {
             case "aarch64", "arm64" -> "arm64";
             default -> null;
         };
+    }
+
+    /** The file name of core {@code coreName} on this computer, e.g. {@code parallel_n64_libretro.dll}. */
+    public static String libraryFileName(String coreName) {
+        return libraryFileName(osKey(), coreName);
     }
 
     /** {@code mgba} becomes {@code mgba_libretro.dll} on Windows, {@code .dylib} on macOS, {@code .so} elsewhere. */

@@ -99,8 +99,7 @@ public final class ConsoleSessions {
         RetroSystem system = RetroSystem.forFileName(romFile).orElseThrow();
         Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
         if (core.isEmpty()) {
-            onError.accept(Component.translatable("message.retrohandhelds.core_missing", system.displayName(),
-                    RetroPaths.cores().toString()));
+            onError.accept(coreMissing(system));
             return Optional.empty();
         }
         // A cartridge saves under its own ID; the play command saves per ROM file.
@@ -121,6 +120,19 @@ public final class ConsoleSessions {
         }
         active = new Active(session, new SessionDisplay(session), pos, cartridge, handheld, romFile);
         return Optional.of(active);
+    }
+
+    /**
+     * Why a game cannot start for want of a core: a download the player has to make (the N64), or a
+     * bundled core that failed to load.
+     */
+    public static Component coreMissing(RetroSystem system) {
+        String cores = RetroPaths.cores().toString();
+        if (system.bundledCore() == null) {
+            return Component.translatable("message.retrohandhelds.core_download", system.displayName(),
+                    NativeLoader.libraryFileName(system.dropInCores().getFirst()), cores);
+        }
+        return Component.translatable("message.retrohandhelds.core_missing", system.displayName(), cores);
     }
 
     public static void stop() {

@@ -130,7 +130,7 @@ The system is picked from the ROM's file extension:
 | Genesis / Mega Drive | `.md` `.gen` `.smd` | BlastEm | `genesis_plus_gx`, `picodrive`, `blastem` |
 | 32X | `.32x` | BlastEm | `picodrive`, `blastem` |
 | Master System, Game Gear, SG-1000 | `.sms` `.gg` `.sg` | Gearsystem | `genesis_plus_gx`, `picodrive`, `gearsystem` |
-| Nintendo 64 | `.n64` `.v64` `.z64` | ParaLLEl-N64 (software renderer) | `parallel_n64` |
+| Nintendo 64 | `.n64` `.v64` `.z64` | none: download ParaLLEl-N64, see [Setting up the N64](#setting-up-the-n64) | `parallel_n64` |
 | PlayStation | `.cue` `.chd` `.m3u` `.pbp` | PCSX ReARMed | `pcsx_rearmed`, `mednafen_psx` |
 | Nintendo DS | `.nds` | DeSmuME | `desmume` |
 | PC Engine / TurboGrafx-16 | `.pce` | Beetle PCE Fast | `mednafen_pce`, `mednafen_pce_fast` |
@@ -142,6 +142,20 @@ The system is picked from the ROM's file extension:
 | Pokemon Mini | `.min` | PokeMini | `pokemini` |
 
 To use another core, download it for your platform (e.g. from the [libretro buildbot](https://buildbot.libretro.com/nightly/)) and put the file, named like `snes9x_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/`. It is used instead of the bundled core the next time you start a game for that system. Cores built on libco (bsnes and its forks, Mupen64Plus-Next, melonDS) and cores that need OpenGL or Vulkan (Flycast, PPSSPP) don't work in the mod. `.bin` files aren't accepted because many systems use that extension; rename a Genesis `.bin` to `.md`.
+
+### Setting up the N64
+
+The N64 core isn't included in the mod: its graphics code is licensed for non-commercial use only, so it can't be shipped with it. It takes a minute to add yourself:
+
+1. Download ParaLLEl-N64 for your computer from the libretro buildbot:
+   - Windows: [parallel_n64_libretro.dll.zip](https://buildbot.libretro.com/nightly/windows/x86_64/latest/parallel_n64_libretro.dll.zip)
+   - Linux: [parallel_n64_libretro.so.zip](https://buildbot.libretro.com/nightly/linux/x86_64/latest/parallel_n64_libretro.so.zip)
+   - macOS, Apple Silicon: [parallel_n64_libretro.dylib.zip](https://buildbot.libretro.com/nightly/apple/osx/arm64/latest/parallel_n64_libretro.dylib.zip)
+   - macOS, Intel: [parallel_n64_libretro.dylib.zip](https://buildbot.libretro.com/nightly/apple/osx/x86_64/latest/parallel_n64_libretro.dylib.zip)
+2. Unzip it and put `parallel_n64_libretro.dll` (`.so` on Linux, `.dylib` on macOS) in `retro_handhelds/cores/` in your Minecraft folder.
+3. Play an N64 cartridge. The mod sets the core up itself (software rendering, no OpenGL needed); there is nothing to configure.
+
+On macOS, if the game says the core could not be loaded, macOS may be blocking the downloaded file: run `xattr -d com.apple.quarantine` on it in Terminal and try again. Until the core is there, starting an N64 game shows a message saying which file to get and where it goes.
 
 A PlayStation game is a `.cue` (with its `.bin` tracks next to it), a `.chd`, an `.m3u` playlist for multi-disc games, or a `.pbp`. No BIOS is needed: PCSX ReARMed has a built-in one, though a real `scph5501.bin` in `system/` is more compatible. The N64 draws in software, which is heavy: it needs a fast CPU to reach full speed while Minecraft runs.
 

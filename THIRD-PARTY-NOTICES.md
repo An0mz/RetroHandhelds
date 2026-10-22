@@ -58,17 +58,6 @@ following unmodified third-party software.
 - License: GNU General Public License 3.0 ([LICENSE-Gearsystem.txt](LICENSE-Gearsystem.txt))
 - Source code: https://github.com/drhelius/Gearsystem (exact version: the commit above)
 
-## ParaLLEl-N64
-
-- What: the Nintendo 64 emulator (Mupen64Plus with the angrylion software renderer), as libretro cores in `natives/<platform>/parallel_n64_libretro.*`
-  (Windows x64, Linux x64, macOS arm64, macOS x64)
-- Version: ParaLLEl N64 1.0 6f23339, built from commit
-  [`6f233392445dcef4188a321d4ba65a776f0e1672`](https://github.com/libretro/parallel-n64/tree/6f233392445dcef4188a321d4ba65a776f0e1672)
-- Built by: the [libretro buildbot](https://buildbot.libretro.com/nightly/) (nightly of 2026-10-22)
-- Authors: the Mupen64Plus, angrylion, ParaLLEl and libretro teams
-- License: GNU General Public License 2.0 ([LICENSE-ParaLLEl-N64.txt](LICENSE-ParaLLEl-N64.txt))
-- Source code: https://github.com/libretro/parallel-n64 (exact version: the commit above)
-
 ## PCSX ReARMed
 
 - What: the PlayStation emulator, as libretro cores in `natives/<platform>/pcsx_rearmed_libretro.*`
