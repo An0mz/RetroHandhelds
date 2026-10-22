@@ -6,38 +6,30 @@ new features raise the middle number, fixes alone the last one.
 ## [1.2.0] - 2026-10-22
 
 ### Added
-- **More systems:** NES, SNES, Genesis / Mega Drive, Master System and Game Gear games, picked by
-  file extension (`.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.smd`, `.sms`, `.gg`).
-- **N64, PlayStation, Nintendo DS and more:** N64 (ParaLLEl-N64, software rendered; downloaded by the
-  player into `retro_handhelds/cores/`, since its license forbids bundling it), PlayStation
-  (PCSX ReARMed, no BIOS needed; `.cue`, `.chd`, `.m3u`, `.pbp`), Nintendo DS (DeSmuME, touchscreen with
-  the mouse), PC Engine, Neo Geo Pocket, WonderSwan, Atari Lynx, 2600 and 7800, Pokemon Mini, 32X and
-  SG-1000.
+- **Many more systems:** NES, SNES, N64, PlayStation, Nintendo DS, Genesis / Mega Drive, 32X, Master
+  System, Game Gear, SG-1000, PC Engine, Neo Geo Pocket, WonderSwan, Atari Lynx, 2600 and 7800, and
+  Pokemon Mini, picked by file extension. PlayStation games are `.cue`, `.chd`, `.m3u` or `.pbp` and need
+  no BIOS. The N64 needs a core you download yourself; the README explains how.
 - **Controls per console:** every console has its own keys, preset for its controller and named
-  after its own buttons. A new **Controls** button in the game screen shows and changes them (click,
-  then press a key or mouse button); changes are kept in `retro_handhelds/controls.json`.
-- **Mouse look:** on the PlayStation the mouse moves the right stick; Left Alt frees the cursor. On the
-  N64 it is off (the arrow keys are the C-buttons) and can be turned on in Controls, where a flick taps a
-  C-button. Mouse look, up/down and sensitivity can be changed per console.
+  after its own buttons. A new **Controls** button in the game screen shows and changes them.
+- **Mouse:** on the PlayStation the mouse moves the right stick (Left Alt frees the cursor); on the DS it
+  is the touchscreen. Mouse look and its sensitivity can be set per console in Controls.
 - **Analog sticks:** gamepad sticks reach the game as analog sticks on the N64 and PlayStation, and the
-  gamepad triggers are L2/R2 there.
-- **Restart button** next to Power Off, with a confirmation: starts the game over without switching
-  the console off.
+  triggers are L2/R2 there.
+- **Restart button** next to Power Off, with a confirmation.
 - **Your own cores:** put any libretro core in `retro_handhelds/cores/` (e.g. Genesis Plus GX or
   Snes9x) to use it instead of the bundled one.
 
 ### Changed
-- The console buttons left *Options → Controls*: they are set per console in the new Controls screen.
-  Keys changed there before are not carried over (the GBA preset uses the same defaults as before).
-- Games show at up to 640x480, so NES, SNES and Genesis games keep their full picture, at the shape the
-  core asks for (Genesis at 4:3). Bigger pictures are scaled down instead of cropped.
-- N64 and PlayStation games are drawn smoothed instead of with blocky pixels, as on a TV of the time.
-- Save states from cores other than mGBA are kept in their own files, so switching cores can't load
-  an incompatible state. Existing GBA saves and states are unchanged.
+- The console buttons moved from *Options → Controls* to the new Controls screen. Keys changed there
+  before are not carried over; the GBA keys are the same as before.
+- Bigger pictures (up to 640x480) at the shape the core asks for, scaled down instead of cropped. N64
+  and PlayStation games are drawn smoothed instead of with blocky pixels.
+- Save states from cores other than mGBA are kept in their own files. Existing GBA saves and states
+  are unchanged.
 
 ### Fixed
-- Big TV walls no longer slow the game down or run it out of memory: one check now works out the
-  screen for every TV in the wall, instead of each TV walking the whole wall twice a second.
+- Big TV walls no longer slow the game down or run it out of memory.
 
 ## [1.1.0] - 2026-10-18
 
@@ -78,6 +70,6 @@ First public release, for Minecraft 1.21.1 with NeoForge.
   compressed picture and sound within limits the server owner sets.
 - Server settings to turn consoles, handhelds or screen sharing off, and to limit sharing bandwidth.
 
-[1.2.0]: https://github.com/An0mz/RetroHandhelds/compare/f61872c...e01e7a0
+[1.2.0]: https://github.com/An0mz/RetroHandhelds/compare/f61872c...v1.2.0
 [1.1.0]: https://github.com/An0mz/RetroHandhelds/compare/3cc638f...f61872c
 [1.0.0]: https://github.com/An0mz/RetroHandhelds/tree/3cc638f
