@@ -42,16 +42,16 @@ displayURL="https://github.com/An0mz/RetroHandhelds" #optional
 logoFile="retrohandhelds_logo.png" #optional
 
 # A text field displayed in the mod UI
-credits="Emulation by mGBA (https://github.com/mgba-emu/mgba), MPL 2.0" #optional
+credits="Emulation by mGBA, FCEUmm, Mesen-S, BlastEm, Gearsystem, PCSX ReARMed, DeSmuME, Beetle PCE Fast, Beetle NeoPop, Beetle WonderSwan, Handy, Stella 2014, ProSystem and PokeMini, each under its own license. Versions, licenses and source code: THIRD-PARTY-NOTICES.md in this jar." #optional
 
 # The authors of the mod, displayed in the mod UI (optional)
 authors="Anomz"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Play your own GBA games inside Minecraft: on a console block, on a handheld you carry, or full screen.
+Play your own retro games inside Minecraft: on a console block, on a TV, on a handheld you carry, or full screen.
 Cartridges keep their own saves, with sound, gamepad support and save states.
-Powered by mGBA. No games or BIOS files are included: bring your own.
+Powered by libretro cores. No games or BIOS files are included: bring your own.
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

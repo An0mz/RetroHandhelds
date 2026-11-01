@@ -23,8 +23,9 @@ SOFTWARE.
 ---
 
 This license covers Retro Handhelds' own code and assets. It does not cover
-the bundled mGBA libretro cores in src/main/resources/natives/, which are
-licensed under the Mozilla Public License 2.0 (see LICENSE-mGBA.txt).
+the bundled libretro cores in src/main/resources/natives/, which keep their own
+licenses (GNU GPL 2.0 or 3.0, Mozilla Public License 2.0, zlib). See
+THIRD-PARTY-NOTICES.md and the LICENSE-*.txt files.
 
 Third-party notices
 -------------------

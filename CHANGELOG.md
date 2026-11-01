@@ -3,6 +3,21 @@
 All notable changes to Retro Handhelds. Versions follow [semantic versioning](https://semver.org):
 new features raise the middle number, fixes alone the last one.
 
+## Unreleased
+
+### Fixed
+- Sharing your game with nearby players no longer breaks for good after a long stall, such as the
+  computer waking from sleep.
+- Cores that send sound one sample at a time now share it with nearby players and play it at the right
+  speed while fast-forwarding.
+- A core added to `retro_handhelds/cores/` is used from the next game on, as the README says, even if the
+  bundled core already ran.
+- With `enableConsoles` off, the server also stops forwarding pictures and sound from consoles.
+
+### Changed
+- The mod's license, credits and description now cover all the bundled cores, and each release comes
+  with their source code.
+
 ## [1.2.0] - 2026-10-22
 
 ### Added

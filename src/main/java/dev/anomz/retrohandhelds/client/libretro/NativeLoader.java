@@ -51,7 +51,9 @@ public final class NativeLoader {
 
     public static synchronized Optional<LoadedCore> load(RetroSystem system) {
         LoadedCore cached = CACHE.get(system);
-        if (cached == null) {
+        // A core dropped into the folder after the bundled one loaded takes over from the next game on.
+        Path dropIn = cached == null ? null : findDropIn(system);
+        if (cached == null || dropIn != null && !dropIn.equals(cached.file())) {
             long start = System.nanoTime();
             cached = tryLoad(system);
             RetroHandhelds.LOGGER.info("Retro Handhelds: {} core load took {} ms", system.displayName(),
@@ -120,6 +122,19 @@ public final class NativeLoader {
         }, "RetroHandhelds-CoreLoader");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    /** The player's own core for this system that would be tried first, or null if there is none. */
+    @Nullable
+    private static Path findDropIn(RetroSystem system) {
+        String os = osKey();
+        for (String name : system.dropInCores()) {
+            Path file = RetroPaths.cores().resolve(libraryFileName(os, name));
+            if (Files.isRegularFile(file)) {
+                return file;
+            }
+        }
+        return null;
     }
 
     private static LoadedCore tryLoad(RetroSystem system) {

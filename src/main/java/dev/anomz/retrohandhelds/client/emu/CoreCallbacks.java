@@ -251,10 +251,23 @@ final class CoreCallbacks {
         return out;
     }
 
+    /** The same as {@link #audioSampleBatch} for cores that hand over one stereo frame at a time. */
     private void audioSample(short left, short right) {
-        audioPair[0] = left;
-        audioPair[1] = right;
-        audio.write(audioPair, 2);
+        try {
+            boolean keep = decimationPhase == 0 || audioDecimation <= 1;
+            decimationPhase = (decimationPhase + 1) % Math.max(1, audioDecimation);
+            if (!keep) {
+                return;
+            }
+            audioPair[0] = left;
+            audioPair[1] = right;
+            audio.write(audioPair, 2);
+            if (shareAudio) {
+                sharedAudio.write(audioPair, 2);
+            }
+        } catch (Throwable t) {
+            logOnce("audio sample", t);
+        }
     }
 
     // One snapshot per frame, so every input_state call within retro_run sees the same input.

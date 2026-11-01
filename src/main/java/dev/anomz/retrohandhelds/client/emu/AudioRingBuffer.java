@@ -46,8 +46,10 @@ public final class AudioRingBuffer {
         readPos = read + count;
     }
 
-    /** Consumer side: discards the oldest samples. */
+    /** Consumer side: discards the oldest samples. A count of zero or less discards nothing. */
     public void skip(int count) {
-        readPos += Math.min(count, available()) & ~1;
+        if (count > 0) {
+            readPos += Math.min(count, available()) & ~1;
+        }
     }
 }

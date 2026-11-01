@@ -28,7 +28,7 @@ What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Requirements
 
-- Minecraft 1.21.1 with NeoForge 21.1.x (Java 21)
+- Minecraft 1.21.1 with NeoForge 21.1.262 or newer (Java 21)
 - Install on **both** the client and the server (the mod adds blocks and items).
 - Windows x64, Linux x64, or macOS (Apple Silicon or Intel). Linux and macOS are checked automatically in CI; Windows is also tested in game.
 
@@ -210,10 +210,10 @@ The jar is written to `build/libs/`. `./gradlew runClient` starts a development 
 
 ## Legal
 
-Retro Handhelds does not include, download or link to any games or BIOS files. Only play games you own. This project is not affiliated with or endorsed by Nintendo.
+Retro Handhelds does not include, download or link to any games or BIOS files. Only play games you own. This project is not affiliated with or endorsed by Mojang, Microsoft, Nintendo, Sega, Sony, Atari, NEC, SNK, Bandai or any other console maker. Console names are used only to say which games a core runs, and belong to their owners.
 
 ## License and credits
 
 - Retro Handhelds is licensed under the [MIT License](LICENSE).
-- Emulation by [mGBA](https://github.com/mgba-emu/mgba) (MPL 2.0, [LICENSE-mGBA.txt](LICENSE-mGBA.txt)), [FCEUmm](https://github.com/libretro/libretro-fceumm) (GPL 2.0, [LICENSE-FCEUmm.txt](LICENSE-FCEUmm.txt)), [Mesen-S](https://github.com/libretro/Mesen-S) (GPL 3.0, [LICENSE-Mesen-S.txt](LICENSE-Mesen-S.txt)), [BlastEm](https://github.com/libretro/blastem) (GPL 3.0, [LICENSE-BlastEm.txt](LICENSE-BlastEm.txt)) and [Gearsystem](https://github.com/drhelius/Gearsystem) (GPL 3.0, [LICENSE-Gearsystem.txt](LICENSE-Gearsystem.txt)), each by their authors and contributors. Exact versions and source links: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
+- Emulation by mGBA (MPL 2.0), FCEUmm, PCSX ReARMed, DeSmuME, Beetle PCE Fast, Beetle NeoPop, Beetle WonderSwan, Stella 2014 and ProSystem (GPL 2.0), Mesen-S, BlastEm, Gearsystem and PokeMini (GPL 3.0), and Handy (zlib), each by their authors and contributors and each under its own `LICENSE-*.txt`. Exact versions, source code and authors: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The bundled cores are the libretro builds from the [libretro buildbot](https://buildbot.libretro.com/nightly/).
 - Build files come from the [NeoForge MDK](https://github.com/NeoForged/MDK) template (MIT, notice included in [LICENSE](LICENSE)).

@@ -3,6 +3,15 @@
 Retro Handhelds itself is MIT licensed ([LICENSE](LICENSE)). The mod jar also contains the
 following unmodified third-party software.
 
+## Getting the source code
+
+The complete source code of every core below, at the exact commit listed, is attached to each
+[GitHub release](https://github.com/An0mz/RetroHandhelds/releases) of the mod as
+`retrohandhelds-<version>-core-sources.tar`. If it is ever unavailable there, anyone holding this
+notice may ask for a copy through the [issue tracker](https://github.com/An0mz/RetroHandhelds/issues)
+for three years after the mod version they received was last distributed, for no more than the cost
+of providing it.
+
 ## mGBA
 
 - What: the GBA, Game Boy and Game Boy Color emulator, as libretro cores in `natives/<platform>/mgba_libretro.*`

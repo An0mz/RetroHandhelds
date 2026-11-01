@@ -101,9 +101,12 @@ public final class ScreenBroadcaster {
             return null;
         }
         double radius = RetroServerConfig.screenShareRadius();
-        boolean someoneNear = minecraft.level.players().stream()
-                .anyMatch(p -> p != minecraft.player && p.distanceToSqr(center) <= radius * radius);
-        return someoneNear ? new Target(handheld, pos, session, RetroServerConfig.screenShareFps()) : null;
+        for (Player other : minecraft.level.players()) {
+            if (other != minecraft.player && other.distanceToSqr(center) <= radius * radius) {
+                return new Target(handheld, pos, session, RetroServerConfig.screenShareFps());
+            }
+        }
+        return null;
     }
 
     private static boolean holds(Player player, @Nullable CartridgeData cartridge) {
@@ -126,8 +129,10 @@ public final class ScreenBroadcaster {
         FrameScaler scaler = new FrameScaler();
         int[] shared = new int[ScreenStrips.MAX_WIDTH * ScreenStrips.MAX_HEIGHT];
         int[] sharedSize = new int[2];
-        short[] stereo = new short[1 << 16];
-        short[] mono = new short[AudioCodec.PACKET_SAMPLES * 4];
+        short[] mono = new short[AudioCodec.PACKET_SAMPLES * 8];
+        // After sending, less than one packet is left in mono, and a stereo pair makes at most one mono sample.
+        int maxDrain = (mono.length - AudioCodec.PACKET_SAMPLES) * 2;
+        short[] stereo = new short[maxDrain];
         int monoCount = 0;
         Target last = null;
         long lastFrame = -1;
@@ -159,7 +164,9 @@ public final class ScreenBroadcaster {
                 if (downmixer == null && rate > 0) {
                     downmixer = new AudioCodec.Downmixer(rate);
                 }
-                int available = Math.min(ring.available(), stereo.length) & ~1;
+                // More than this piled up (a stall, a suspended machine): it's stale, so keep only the newest.
+                ring.skip(ring.available() - maxDrain);
+                int available = Math.min(ring.available(), maxDrain) & ~1;
                 if (available > 0) {
                     ring.read(stereo, available);
                     if (downmixer != null) {

@@ -55,7 +55,8 @@ final class ShareRelay {
             center = player.position();
         } else {
             center = Vec3.atCenterOf(console);
-            if (player.distanceToSqr(center) > ScreenShare.MAX_SENDER_DISTANCE * ScreenShare.MAX_SENDER_DISTANCE
+            if (!RetroServerConfig.consolesEnabled()
+                    || player.distanceToSqr(center) > ScreenShare.MAX_SENDER_DISTANCE * ScreenShare.MAX_SENDER_DISTANCE
                     || !level.isLoaded(console)
                     || !(level.getBlockEntity(console) instanceof ConsoleBlockEntity entity)
                     || entity.cartridgeData() == null) {
