@@ -64,6 +64,7 @@ dependencies {
     // (same versions as Minecraft 1.21.1 ships).
     testImplementation 'net.java.dev.jna:jna:5.14.0'
     testImplementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'org.slf4j:slf4j-api:2.0.9'
     testCompileOnly 'org.lwjgl:lwjgl-glfw:3.3.3'
 }
 

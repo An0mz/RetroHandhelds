@@ -152,10 +152,9 @@ The N64 core isn't included in the mod: its graphics code is licensed for non-co
    - Linux: [parallel_n64_libretro.so.zip](https://buildbot.libretro.com/nightly/linux/x86_64/latest/parallel_n64_libretro.so.zip)
    - macOS, Apple Silicon: [parallel_n64_libretro.dylib.zip](https://buildbot.libretro.com/nightly/apple/osx/arm64/latest/parallel_n64_libretro.dylib.zip)
    - macOS, Intel: [parallel_n64_libretro.dylib.zip](https://buildbot.libretro.com/nightly/apple/osx/x86_64/latest/parallel_n64_libretro.dylib.zip)
-2. Unzip it and put `parallel_n64_libretro.dll` (`.so` on Linux, `.dylib` on macOS) in `retro_handhelds/cores/` in your Minecraft folder.
-3. Play an N64 cartridge. The mod sets the core up itself (software rendering, no OpenGL needed); there is nothing to configure.
+2. Play an N64 cartridge. The mod finds the zip in your Downloads folder, or in `retro_handhelds/cores/`, and installs the core from it; there is nothing to unzip or configure (it runs in software, no OpenGL needed).
 
-On macOS, if the game says the core could not be loaded, macOS may be blocking the downloaded file: run `xattr -d com.apple.quarantine` on it in Terminal and try again. Until the core is there, starting an N64 game shows a message saying which file to get and where it goes.
+Starting an N64 game before the core is there opens a panel with a **Download** button for your computer's core and a **Check again** button that installs it once downloaded and starts the game. If your browser saves downloads somewhere other than `Downloads`, put the zip, or the unzipped `parallel_n64_libretro.dll` (`.so` on Linux, `.dylib` on macOS), in `retro_handhelds/cores/` yourself. The mod never downloads anything itself: it only installs the file you downloaded. On macOS it also clears the quarantine flag of cores in that folder, so macOS lets them load.
 
 A PlayStation game is a `.cue` (with its `.bin` tracks next to it), a `.chd`, an `.m3u` playlist for multi-disc games, or a `.pbp`. No BIOS is needed: PCSX ReARMed has a built-in one, though a real `scph5501.bin` in `system/` is more compatible. The N64 draws in software, which is heavy: it needs a fast CPU to reach full speed while Minecraft runs.
 

@@ -144,6 +144,7 @@ public final class NativeLoader {
             if (!Files.isRegularFile(file)) {
                 continue;
             }
+            CoreInstaller.clearQuarantine(file);
             try {
                 LibretroCore core = Native.load(file.toAbsolutePath().toString(), LibretroCore.class);
                 RetroHandhelds.LOGGER.info("Loaded {} core {} (libretro API {}) from {}", system.displayName(), name,
@@ -217,7 +218,8 @@ public final class NativeLoader {
         return target;
     }
 
-    private static String osKey() {
+    @Nullable
+    static String osKey() {
         String name = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         if (name.startsWith("windows")) return "windows";
         if (name.startsWith("mac") || name.contains("darwin")) return "macos";

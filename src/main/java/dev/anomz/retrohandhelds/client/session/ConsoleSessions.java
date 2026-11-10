@@ -18,6 +18,7 @@ import dev.anomz.retrohandhelds.client.RomLibrary;
 import dev.anomz.retrohandhelds.client.emu.CoreOptions;
 import dev.anomz.retrohandhelds.client.emu.EmulatorSession;
 import dev.anomz.retrohandhelds.client.emu.SaveFiles;
+import dev.anomz.retrohandhelds.client.libretro.CoreInstaller;
 import dev.anomz.retrohandhelds.client.libretro.NativeLoader;
 import dev.anomz.retrohandhelds.client.screen.CoreMissingPanel;
 import dev.anomz.retrohandhelds.client.screen.EmulatorScreen;
@@ -61,7 +62,13 @@ public final class ConsoleSessions {
 
     /** For the play command: a session not tied to any block. */
     public static Optional<Active> startStandalone(String romFile, Consumer<Component> onError) {
-        return start(romFile, null, null, false, onError);
+        return start(romFile, null, null, false, onError, () -> retryStandalone(romFile));
+    }
+
+    private static void retryStandalone(String romFile) {
+        Minecraft minecraft = Minecraft.getInstance();
+        startStandalone(romFile, message -> minecraft.player.displayClientMessage(message, true))
+                .ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, true)));
     }
 
     /** Right-click on a console: reuse its running session or start one, then open the screen. */
@@ -71,7 +78,8 @@ public final class ConsoleSessions {
         Optional<Active> session = current != null && pos.equals(current.pos())
                 && cartridge.equals(current.cartridge()) && current.isRunning()
                 ? Optional.of(current)
-                : start(cartridge.romFile(), pos, cartridge, false, message -> minecraft.player.displayClientMessage(message, true));
+                : start(cartridge.romFile(), pos, cartridge, false, message -> minecraft.player.displayClientMessage(message, true),
+                        () -> powerOn(pos, cartridge));
         session.ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, false)));
     }
 
@@ -85,12 +93,17 @@ public final class ConsoleSessions {
         Optional<Active> session = current != null && current.handheld()
                 && cartridge.equals(current.cartridge()) && current.isRunning()
                 ? Optional.of(current)
-                : start(cartridge.romFile(), null, cartridge, true, message -> minecraft.player.displayClientMessage(message, true));
+                : start(cartridge.romFile(), null, cartridge, true, message -> minecraft.player.displayClientMessage(message, true),
+                        () -> powerOnHandheld(cartridge));
         session.ifPresent(s -> minecraft.setScreen(new EmulatorScreen(s, false)));
     }
 
+    /**
+     * @param retry starts the same game again the way the player did, for the missing-core panel once
+     *     the core is there (the client tick switches it off again if the console or handheld went away)
+     */
     private static Optional<Active> start(String romFile, @Nullable BlockPos pos, @Nullable CartridgeData cartridge,
-            boolean handheld, Consumer<Component> onError) {
+            boolean handheld, Consumer<Component> onError, Runnable retry) {
         Optional<Path> rom = RomLibrary.resolve(romFile);
         if (rom.isEmpty()) {
             onError.accept(Component.translatable("message.retrohandhelds.rom_missing", romFile));
@@ -99,9 +112,13 @@ public final class ConsoleSessions {
         // RomLibrary only resolves names with a known system's extension.
         RetroSystem system = RetroSystem.forFileName(romFile).orElseThrow();
         Optional<NativeLoader.LoadedCore> core = NativeLoader.loadForSession(system);
+        if (core.isEmpty() && CoreInstaller.installFor(system).status() == CoreInstaller.Status.INSTALLED) {
+            // The player downloaded the core but didn't unzip it into the cores folder yet.
+            core = NativeLoader.loadForSession(system);
+        }
         if (core.isEmpty()) {
             // Too much to say in one line: which file, from where, into which folder.
-            Minecraft.getInstance().setScreen(new CoreMissingPanel(system));
+            Minecraft.getInstance().setScreen(new CoreMissingPanel(system, retry));
             return Optional.empty();
         }
         // A cartridge saves under its own ID; the play command saves per ROM file.

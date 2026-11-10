@@ -5,6 +5,12 @@ new features raise the middle number, fixes alone the last one.
 
 ## Unreleased
 
+### Added
+- **Easier N64 setup:** no more unzipping. After downloading the N64 core, press **Check again** in the
+  panel that asked for it, or just play the cartridge: the mod installs the core from the zip in your
+  Downloads or `retro_handhelds/cores/` folder and starts the game. On macOS it also lifts the quarantine
+  that kept a downloaded core from loading. The mod still never downloads anything itself.
+
 ### Fixed
 - Sharing your game with nearby players no longer breaks for good after a long stall, such as the
   computer waking from sleep.
