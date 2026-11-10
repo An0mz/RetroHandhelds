@@ -3,7 +3,7 @@
 All notable changes to Retro Handhelds. Versions follow [semantic versioning](https://semver.org):
 new features raise the middle number, fixes alone the last one.
 
-## Unreleased
+## [1.3.0] - 2026-11-10
 
 ### Added
 - **Easier N64 setup:** no more unzipping. After downloading the N64 core, press **Check again** in the
@@ -95,6 +95,7 @@ First public release, for Minecraft 1.21.1 with NeoForge.
   compressed picture and sound within limits the server owner sets.
 - Server settings to turn consoles, handhelds or screen sharing off, and to limit sharing bandwidth.
 
+[1.3.0]: https://github.com/An0mz/RetroHandhelds/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/An0mz/RetroHandhelds/compare/f61872c...v1.2.0
 [1.1.0]: https://github.com/An0mz/RetroHandhelds/compare/3cc638f...f61872c
 [1.0.0]: https://github.com/An0mz/RetroHandhelds/tree/3cc638f
